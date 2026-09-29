@@ -6,7 +6,9 @@ use Craft;
 use craft\base\ElementInterface;
 use craft\db\Query;
 use craft\db\Table as CraftTable;
+use craft\elements\db\EntryQuery;
 use craft\elements\Entry;
+use craft\fields\Matrix;
 use craft\helpers\DateTimeHelper;
 use craft\helpers\Db;
 use craft\helpers\ElementHelper;
@@ -44,6 +46,11 @@ class Targets extends Component
      * @var string[] Attributes whose value is shared by all sites (everything else is per site, unless it's a field).
      */
     public const GLOBAL_ATTRIBUTES = ['enabled', 'postDate', 'expiryDate', 'authorIds'];
+
+    /**
+     * @var string Separates the parts of a nested target path: `matrixField.entryType.innerField`.
+     */
+    public const PATH_SEPARATOR = '.';
 
     /**
      * @var array<string, string> Attribute labels.
@@ -102,7 +109,83 @@ class Targets extends Component
             $targets[] = $this->_describe(new Target(['handle' => $handle, 'field' => $field]), $field->name, 'Fields', $count, $total);
         }
 
+        // Fields inside Matrix nested entries, as matrixField.entryType.innerField
+        foreach ($fields as $handle => ['field' => $field, 'count' => $count]) {
+            if (!$field instanceof Matrix) {
+                continue;
+            }
+
+            foreach ($field->getEntryTypes() as $entryType) {
+                foreach ($entryType->getFieldLayout()->getCustomFields() as $innerField) {
+                    $path = implode(self::PATH_SEPARATOR, [$handle, $entryType->handle, $innerField->handle]);
+                    $label = implode(' › ', [$field->name, $entryType->name, $innerField->name]);
+                    $targets[] = $this->_describe(new Target(['handle' => $path, 'field' => $innerField]), $label, "Matrix: $field->name", $count, $total);
+                }
+            }
+        }
+
         return array_values(array_filter($targets));
+    }
+
+    /**
+     * Returns whether a target handle is a nested path (`matrixField.entryType.innerField`).
+     *
+     * @param string $handle
+     * @return bool
+     */
+    public static function isNestedPath(string $handle): bool
+    {
+        return substr_count($handle, self::PATH_SEPARATOR) === 2;
+    }
+
+    /**
+     * Returns the owner's nested entries a path points at (all entries of the path's type in its Matrix field),
+     * in the owner's site. Returns `null` if the owner doesn't have that Matrix field.
+     *
+     * @param ElementInterface $owner
+     * @param string $path
+     * @return Entry[]|null
+     */
+    public function nestedElements(ElementInterface $owner, string $path): ?array
+    {
+        [$matrixHandle, $typeHandle] = explode(self::PATH_SEPARATOR, $path);
+        $field = $owner->getFieldLayout()?->getFieldByHandle($matrixHandle);
+
+        if (!$field instanceof Matrix) {
+            return null;
+        }
+
+        /** @var EntryQuery $query */
+        $query = $owner->getFieldValue($matrixHandle);
+
+        return (clone $query)->type($typeHandle)->status(null)->all();
+    }
+
+    /**
+     * Returns a readable label for a target handle (`Content Blocks › Text Block › Heading` for nested paths).
+     *
+     * @param string $handle
+     * @return string
+     */
+    public function label(string $handle): string
+    {
+        if (isset(self::ATTRIBUTE_LABELS[$handle])) {
+            return self::ATTRIBUTE_LABELS[$handle];
+        }
+
+        $fields = Craft::$app->getFields();
+
+        if (!self::isNestedPath($handle)) {
+            return $fields->getFieldByHandle($handle)->name ?? $handle;
+        }
+
+        [$matrixHandle, $typeHandle, $innerHandle] = explode(self::PATH_SEPARATOR, $handle);
+
+        return implode(' › ', [
+            $fields->getFieldByHandle($matrixHandle)->name ?? $matrixHandle,
+            Craft::$app->getEntries()->getEntryTypeByHandle($typeHandle)->name ?? $typeHandle,
+            $fields->getFieldByHandle($innerHandle)->name ?? $innerHandle,
+        ]);
     }
 
     /**
@@ -125,6 +208,10 @@ class Targets extends Component
      */
     public function resolve(ElementInterface $element, string $handle): ?Target
     {
+        if (self::isNestedPath($handle)) {
+            return $this->_resolveNested($element, $handle);
+        }
+
         if (self::isAttribute($handle)) {
             if ($handle === 'title' && !$element::hasTitles()) {
                 return null;
@@ -216,6 +303,30 @@ class Targets extends Component
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Resolves `matrixField.entryType.innerField` on a nested entry, checking it belongs to that field and type.
+     *
+     * @param ElementInterface $element
+     * @param string $path
+     * @return Target|null
+     */
+    private function _resolveNested(ElementInterface $element, string $path): ?Target
+    {
+        [$matrixHandle, $typeHandle, $innerHandle] = explode(self::PATH_SEPARATOR, $path);
+
+        if (!$element instanceof Entry || $element->fieldId === null) {
+            return null;
+        }
+
+        if ($element->getField()?->handle !== $matrixHandle || $element->getType()->handle !== $typeHandle) {
+            return null;
+        }
+
+        $field = $element->getFieldLayout()?->getFieldByHandle($innerHandle);
+
+        return $field ? new Target(['handle' => $path, 'field' => $field]) : null;
+    }
 
     /**
      * @param class-string<ElementInterface> $elementType

@@ -4,10 +4,12 @@ namespace romanavr\contentops\helpers;
 
 use Craft;
 use craft\base\ElementInterface;
+use craft\elements\Entry;
 use craft\helpers\Cp;
+use craft\helpers\Html;
+use romanavr\contentops\ContentOps;
 use romanavr\contentops\models\Changeset;
 use romanavr\contentops\records\Change;
-use romanavr\contentops\services\Targets;
 
 /**
  * Prepares change rows for display (element chip, site, target label, highlighted before/after).
@@ -44,20 +46,38 @@ abstract class ChangeRows
         }
 
         $sites = Craft::$app->getSites();
-        $fields = Craft::$app->getFields();
+        $targets = ContentOps::getInstance()->getTargets();
 
-        return array_map(function(Change $change) use ($elements, $sites, $fields) {
+        return array_map(function(Change $change) use ($elements, $sites, $targets) {
             [$before, $after] = Diff::inline(Values::decode($change->oldValue), Values::decode($change->newValue));
             $element = $elements["$change->elementId:$change->siteId"] ?? null;
 
             return [
                 'change' => $change,
-                'elementHtml' => $element ? Cp::elementChipHtml($element) : Craft::t('content-ops', 'Deleted element #{id}', ['id' => $change->elementId]),
+                'elementHtml' => $element ? self::_elementHtml($element) : Craft::t('content-ops', 'Deleted element #{id}', ['id' => $change->elementId]),
                 'site' => $sites->getSiteById($change->siteId)?->getName(),
-                'target' => Targets::ATTRIBUTE_LABELS[$change->target] ?? $fields->getFieldByHandle($change->target)->name ?? $change->target,
+                'target' => $targets->label($change->target),
                 'before' => $before,
                 'after' => $after,
             ];
         }, $changes);
+    }
+
+    // Private Methods
+    // =========================================================================
+
+    /**
+     * Nested entries are shown as their owner's chip, since they often have no title of their own.
+     *
+     * @param ElementInterface $element
+     * @return string
+     */
+    private static function _elementHtml(ElementInterface $element): string
+    {
+        if ($element instanceof Entry && $element->fieldId !== null && ($owner = $element->getOwner()) !== null) {
+            return Cp::elementChipHtml($owner) . Html::tag('div', Html::encode($element->getType()->name), ['class' => 'smalltext light']);
+        }
+
+        return Cp::elementChipHtml($element);
     }
 }

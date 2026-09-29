@@ -88,8 +88,6 @@ class Previewer extends Component
         }
 
         $targets = $plugin->getTargets();
-        $operators = $plugin->getOperators();
-        $elements = Craft::$app->getElements();
         $total = 0;
         $unchanged = 0;
         $currentElementId = null;
@@ -104,58 +102,17 @@ class Previewer extends Component
                 $seenKeys = [];
             }
 
-            $canSave = $user === null || $elements->canSave($element, $user);
-
             foreach ($opsByTarget as $handle => $targetOps) {
-                if (!$canSave) {
-                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Skipped, error: 'You don’t have permission to save this element.');
+                // A Matrix path (field.entryType.innerField) edits the owner's nested entries; anything else edits the element itself.
+                $subjects = Targets::isNestedPath($handle) ? $targets->nestedElements($element, $handle) : [$element];
+
+                if ($subjects === null) {
+                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Skipped, error: "“{$this->_rootHandle($handle)}” isn’t in this element’s field layout.");
                     continue;
                 }
 
-                $target = $targets->resolve($element, $handle);
-
-                if ($target === null) {
-                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Skipped, error: "“{$handle}” isn’t in this element’s field layout.");
-                    continue;
-                }
-
-                $unsupported = array_filter($targetOps, fn(Operation $operation) => !$operators->getOperator($operation->operator)->supports($target));
-
-                if ($unsupported) {
-                    $operation = reset($unsupported);
-                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Skipped, error: sprintf(
-                        'The %s operator can’t edit %s.',
-                        $operators->getOperator($operation->operator)::displayName(),
-                        $target->field ? $target->field::displayName() . ' fields' : "the “{$handle}” attribute",
-                    ));
-                    continue;
-                }
-
-                // Values shared between sites are only changed once per element.
-                $key = $targets->translationKey($element, $target);
-
-                if (isset($seenKeys[$handle][$key])) {
-                    continue;
-                }
-
-                $seenKeys[$handle][$key] = true;
-
-                try {
-                    $old = $targets->read($element, $target);
-                    $new = $old;
-
-                    foreach ($targetOps as $operation) {
-                        $new = $operators->getOperator($operation->operator)->apply($new, $operation, $element);
-                    }
-
-                    if (Values::equal($old, $new)) {
-                        $unchanged++;
-                        continue;
-                    }
-
-                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Pending, Values::encode($old), Values::encode($new));
-                } catch (Throwable $e) {
-                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Failed, error: $e->getMessage());
+                foreach ($subjects as $subject) {
+                    $unchanged += $this->_previewSubject($record->id, $subject, $handle, $targetOps, $user, $seenKeys);
                 }
             }
 
@@ -182,6 +139,85 @@ class Previewer extends Component
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Previews one target on one element (an owner or a nested entry) and buffers the resulting row.
+     *
+     * @param int $changesetId
+     * @param ElementInterface $element
+     * @param string $handle
+     * @param Operation[] $targetOps
+     * @param User|null $user
+     * @param array<string, bool> $seenKeys Translation keys already handled, shared across the element's sites
+     * @return int 1 if the value is unchanged, otherwise 0
+     */
+    private function _previewSubject(int $changesetId, ElementInterface $element, string $handle, array $targetOps, ?User $user, array &$seenKeys): int
+    {
+        $plugin = ContentOps::getInstance();
+        $targets = $plugin->getTargets();
+        $operators = $plugin->getOperators();
+
+        if ($user !== null && !Craft::$app->getElements()->canSave($element, $user)) {
+            $this->_addRow($changesetId, $element, $handle, ChangeStatus::Skipped, error: 'You don’t have permission to save this element.');
+            return 0;
+        }
+
+        $target = $targets->resolve($element, $handle);
+
+        if ($target === null) {
+            $this->_addRow($changesetId, $element, $handle, ChangeStatus::Skipped, error: "“{$handle}” isn’t in this element’s field layout.");
+            return 0;
+        }
+
+        $unsupported = array_filter($targetOps, fn(Operation $operation) => !$operators->getOperator($operation->operator)->supports($target));
+
+        if ($unsupported) {
+            $operation = reset($unsupported);
+            $this->_addRow($changesetId, $element, $handle, ChangeStatus::Skipped, error: sprintf(
+                'The %s operator can’t edit %s.',
+                $operators->getOperator($operation->operator)::displayName(),
+                $target->field ? $target->field::displayName() . ' fields' : "the “{$handle}” attribute",
+            ));
+            return 0;
+        }
+
+        // Values shared between sites are only changed once per element.
+        $key = "$element->id|$handle|" . $targets->translationKey($element, $target);
+
+        if (isset($seenKeys[$key])) {
+            return 0;
+        }
+
+        $seenKeys[$key] = true;
+
+        try {
+            $old = $targets->read($element, $target);
+            $new = $old;
+
+            foreach ($targetOps as $operation) {
+                $new = $operators->getOperator($operation->operator)->apply($new, $operation, $element);
+            }
+
+            if (Values::equal($old, $new)) {
+                return 1;
+            }
+
+            $this->_addRow($changesetId, $element, $handle, ChangeStatus::Pending, Values::encode($old), Values::encode($new));
+        } catch (Throwable $e) {
+            $this->_addRow($changesetId, $element, $handle, ChangeStatus::Failed, error: $e->getMessage());
+        }
+
+        return 0;
+    }
+
+    /**
+     * @param string $handle
+     * @return string
+     */
+    private function _rootHandle(string $handle): string
+    {
+        return explode(Targets::PATH_SEPARATOR, $handle)[0];
+    }
 
     /**
      * Counts elements about to change that have drafts. Craft marks such drafts as outdated after the save.
