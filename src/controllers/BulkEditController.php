@@ -5,15 +5,11 @@ namespace romanavr\contentops\controllers;
 use Craft;
 use craft\base\ElementInterface;
 use craft\controllers\ElementIndexesController;
-use craft\helpers\Cp;
 use romanavr\contentops\ContentOps;
 use romanavr\contentops\enums\ChangesetType;
-use romanavr\contentops\helpers\Diff;
-use romanavr\contentops\helpers\Values;
-use romanavr\contentops\models\Changeset;
+use romanavr\contentops\helpers\ChangeRows;
 use romanavr\contentops\models\Operation;
 use romanavr\contentops\models\Selection;
-use romanavr\contentops\services\Targets;
 use yii\base\InvalidArgumentException;
 use yii\web\BadRequestHttpException;
 use yii\web\ForbiddenHttpException;
@@ -112,7 +108,7 @@ class BulkEditController extends ElementIndexesController
             'counts' => $changeset->counts,
             'html' => $this->getView()->renderTemplate('content-ops/_bulk-edit/preview.twig', [
                 'changeset' => $changeset,
-                'rows' => $this->_previewRows($changeset),
+                'rows' => ChangeRows::build($changeset, ContentOps::getInstance()->getChangesets()->getChanges($changeset->id, limit: self::PREVIEW_ROWS)),
                 'limit' => self::PREVIEW_ROWS,
             ]),
         ]);
@@ -189,48 +185,5 @@ class BulkEditController extends ElementIndexesController
         }
 
         return $options;
-    }
-
-    /**
-     * @param Changeset $changeset
-     * @return array<int, array<string, mixed>>
-     */
-    private function _previewRows(Changeset $changeset): array
-    {
-        $changes = ContentOps::getInstance()->getChangesets()->getChanges($changeset->id, limit: self::PREVIEW_ROWS);
-
-        if (empty($changes)) {
-            return [];
-        }
-
-        /** @var class-string<ElementInterface> $elementType */
-        $elementType = $changeset->selection->elementType;
-        $elements = [];
-
-        foreach ($elementType::find()
-            ->id(array_unique(array_map(fn($change) => $change->elementId, $changes)))
-            ->siteId(array_unique(array_map(fn($change) => $change->siteId, $changes)))
-            ->status(null)
-            ->all() as $element) {
-            $elements["$element->id:$element->siteId"] = $element;
-        }
-
-        $sites = Craft::$app->getSites();
-        $labels = Targets::ATTRIBUTE_LABELS;
-        $fields = Craft::$app->getFields();
-
-        return array_map(function($change) use ($elements, $sites, $labels, $fields) {
-            [$before, $after] = Diff::inline(Values::decode($change->oldValue), Values::decode($change->newValue));
-            $element = $elements["$change->elementId:$change->siteId"] ?? null;
-
-            return [
-                'change' => $change,
-                'elementHtml' => $element ? Cp::elementChipHtml($element) : "#$change->elementId",
-                'site' => $sites->getSiteById($change->siteId)?->getName(),
-                'target' => $labels[$change->target] ?? $fields->getFieldByHandle($change->target)->name ?? $change->target,
-                'before' => $before,
-                'after' => $after,
-            ];
-        }, $changes);
     }
 }

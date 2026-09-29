@@ -11,6 +11,12 @@
     {%- if failed %} · <span class="error">{{ '{num, number} can’t be changed'|t('content-ops', {num: failed}) }}</span>{% endif %}
   </p>
 
+  {% if changeset.getCount('withDrafts') %}
+    <p class="warning with-icon">
+      {{ '{num, plural, =1{One entry has drafts} other{# entries have drafts}} that will be marked as outdated.'|t('content-ops', {num: changeset.getCount('withDrafts')}) }}
+    </p>
+  {% endif %}
+
   {% if rows %}
     <div class="tableview co-preview-table">
       <table class="data fullwidth">

@@ -4,6 +4,8 @@ namespace romanavr\contentops\services;
 
 use Craft;
 use craft\base\ElementInterface;
+use craft\db\Query;
+use craft\db\Table as CraftTable;
 use craft\elements\User;
 use craft\helpers\Db;
 use craft\helpers\Json;
@@ -169,13 +171,37 @@ class Previewer extends Component
         $this->_flushRows();
 
         $changesets = $plugin->getChangesets();
-        $changesets->refreshCounts($record->id, ['total' => $total, 'unchanged' => $unchanged]);
+        $changesets->refreshCounts($record->id, [
+            'total' => $total,
+            'unchanged' => $unchanged,
+            'withDrafts' => $this->_countElementsWithDrafts($record->id),
+        ]);
 
         return $changesets->getChangesetById($record->id);
     }
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Counts elements about to change that have drafts. Craft marks such drafts as outdated after the save.
+     *
+     * @param int $changesetId
+     * @return int
+     */
+    private function _countElementsWithDrafts(int $changesetId): int
+    {
+        return (int)(new Query())
+            ->from(['e' => CraftTable::ELEMENTS])
+            ->where(['not', ['e.draftId' => null]])
+            ->andWhere(['e.dateDeleted' => null])
+            ->andWhere(['e.canonicalId' => (new Query())
+                ->select(['elementId'])
+                ->from(Table::CHANGES)
+                ->where(['changesetId' => $changesetId, 'status' => ChangeStatus::Pending->value]),
+            ])
+            ->count('DISTINCT [[e.canonicalId]]');
+    }
 
     /**
      * @param Selection $selection

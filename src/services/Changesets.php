@@ -2,7 +2,9 @@
 
 namespace romanavr\contentops\services;
 
+use Craft;
 use craft\db\Query;
+use craft\elements\User;
 use craft\helpers\Db;
 use craft\helpers\Json;
 use craft\helpers\Queue;
@@ -56,6 +58,97 @@ class Changesets extends Component
         $records = ChangesetRecord::find()->orderBy(['id' => SORT_DESC])->limit($limit)->all();
 
         return array_map(fn(ChangesetRecord $record) => Changeset::fromRecord($record), $records);
+    }
+
+    /**
+     * Returns a page of changesets, newest first.
+     *
+     * @param int|null $userId Only this user's changesets, or `null` for everyone's
+     * @param int $limit
+     * @param int $offset
+     * @return array{0: Changeset[], 1: int} The changesets and the total count
+     */
+    public function getChangesetsPage(?int $userId, int $limit, int $offset): array
+    {
+        $query = ChangesetRecord::find()->orderBy(['id' => SORT_DESC]);
+
+        if ($userId !== null) {
+            $query->where(['userId' => $userId]);
+        }
+
+        $total = (int)(clone $query)->count();
+        /** @var ChangesetRecord[] $records */
+        $records = $query->limit($limit)->offset($offset)->all();
+
+        return [array_map(fn(ChangesetRecord $record) => Changeset::fromRecord($record), $records), $total];
+    }
+
+    /**
+     * Returns whether a user can see a changeset: their own, or anyone's with the “View history” permission.
+     *
+     * @param Changeset $changeset
+     * @param User $user
+     * @return bool
+     */
+    public function canView(Changeset $changeset, User $user): bool
+    {
+        return $changeset->userId === $user->id || $user->can('contentOps:viewHistory');
+    }
+
+    /**
+     * Returns whether a user can undo a changeset.
+     *
+     * @param Changeset $changeset
+     * @param User $user
+     * @return bool
+     */
+    public function canUndo(Changeset $changeset, User $user): bool
+    {
+        return $user->can('contentOps:undo')
+            && $this->canView($changeset, $user)
+            && in_array($changeset->status, [ChangesetStatus::Applied, ChangesetStatus::PartiallyUndone], true)
+            && ($changeset->getCount(ChangeStatus::Applied->value) + $changeset->getCount(ChangeStatus::UndoConflict->value)) > 0;
+    }
+
+    /**
+     * Returns whether a user can apply a previewed changeset (only their own).
+     *
+     * @param Changeset $changeset
+     * @param User $user
+     * @return bool
+     */
+    public function canApply(Changeset $changeset, User $user): bool
+    {
+        return $changeset->status === ChangesetStatus::Previewed
+            && ($changeset->userId === $user->id || $user->admin)
+            && $user->can('contentOps:bulkEdit');
+    }
+
+    /**
+     * Deletes old changesets: finished ones after the retention period, unapplied previews after a day.
+     *
+     * @return int Number of changesets deleted
+     */
+    public function purgeOld(): int
+    {
+        $settings = ContentOps::getInstance()->getSettings();
+        $db = Craft::$app->getDb();
+
+        $deleted = $db->createCommand()->delete(Table::CHANGESETS, [
+            'and',
+            ['status' => ChangesetStatus::Previewed->value],
+            ['<', 'dateCreated', Db::prepareDateForDb(new DateTime('-1 day'))],
+        ])->execute();
+
+        if ($settings->historyRetentionDays) {
+            $deleted += $db->createCommand()->delete(Table::CHANGESETS, [
+                'and',
+                ['status' => [ChangesetStatus::Applied->value, ChangesetStatus::Failed->value, ChangesetStatus::Undone->value, ChangesetStatus::PartiallyUndone->value]],
+                ['<', 'dateCreated', Db::prepareDateForDb(new DateTime("-{$settings->historyRetentionDays} days"))],
+            ])->execute();
+        }
+
+        return $deleted;
     }
 
     /**

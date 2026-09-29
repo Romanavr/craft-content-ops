@@ -20,3 +20,13 @@
     value: settings.batchSize,
     errors: settings.getErrors('batchSize'),
 }) }}
+
+{{ forms.textField({
+    label: 'History retention (days)'|t('content-ops'),
+    instructions: 'Changesets older than this are deleted and can no longer be undone. Leave blank to keep them forever.'|t('content-ops'),
+    name: 'historyRetentionDays',
+    type: 'number',
+    min: 1,
+    value: settings.historyRetentionDays,
+    errors: settings.getErrors('historyRetentionDays'),
+}) }}
