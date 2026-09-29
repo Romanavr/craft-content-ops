@@ -31,6 +31,11 @@ class Settings extends Model
      */
     public ?int $historyRetentionDays = 90;
 
+    /**
+     * @var int|null Max items (element/site pairs, or fields for Find & Replace) in a changeset proposed through MCP.
+     */
+    public ?int $mcpMaxElements = 1000;
+
     // Public Methods
     // =========================================================================
 
@@ -43,6 +48,10 @@ class Settings extends Model
     {
         if (array_key_exists('historyRetentionDays', $values)) {
             $values['historyRetentionDays'] = $values['historyRetentionDays'] === '' || $values['historyRetentionDays'] === null ? null : (int)$values['historyRetentionDays'];
+        }
+
+        if (array_key_exists('mcpMaxElements', $values)) {
+            $values['mcpMaxElements'] = $values['mcpMaxElements'] === '' || $values['mcpMaxElements'] === null ? null : (int)$values['mcpMaxElements'];
         }
 
         if (isset($values['batchSize'])) {
@@ -68,6 +77,7 @@ class Settings extends Model
         $rules[] = [['batchSize'], 'integer', 'min' => 1, 'max' => 1000];
         $rules[] = [['createRevisions'], 'boolean'];
         $rules[] = [['historyRetentionDays'], 'integer', 'min' => 1];
+        $rules[] = [['mcpMaxElements'], 'integer', 'min' => 1];
 
         return $rules;
     }
