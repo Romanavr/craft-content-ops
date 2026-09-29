@@ -30,7 +30,8 @@
     "name": "Content Ops",
     "developer": "Romanavr",
     "documentationUrl": "https://github.com/romanavr/craft-content-ops",
-    "class": "romanavr\\contentops\\ContentOps"
+    "class": "romanavr\\contentops\\ContentOps",
+    "changelogUrl": "https://raw.githubusercontent.com/romanavr/craft-content-ops/main/CHANGELOG.md"
   },
   "scripts": {
     "check-cs": "ecs check --ansi",
@@ -46,5 +47,16 @@
       "yiisoft/yii2-composer": true,
       "craftcms/plugin-installer": true
     }
-  }
+  },
+  "keywords": [
+    "craft",
+    "cms",
+    "craftcms",
+    "craft-plugin",
+    "bulk edit",
+    "find and replace",
+    "undo",
+    "content",
+    "mcp"
+  ]
 }
