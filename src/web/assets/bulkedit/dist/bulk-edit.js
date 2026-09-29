@@ -116,6 +116,7 @@
           this.total = data.total;
           this.$rows.empty();
           this.addRow();
+          this.updateSizeAndPosition();
         } catch (e) {
           Craft.cp.displayError(e?.response?.data?.message || t('Couldn’t load fields.'));
         } finally {

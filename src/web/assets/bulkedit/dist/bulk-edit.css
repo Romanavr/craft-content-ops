@@ -1,4 +1,4 @@
-.co-bulk-edit { width: min(960px, calc(100vw - 48px)); }
+.modal.fitted.co-bulk-edit { width: min(960px, calc(100vw - 48px)); max-width: none; }
 .co-bulk-edit .body { max-height: calc(100vh - 200px); overflow: auto; }
 .co-bulk-edit h1 { margin-bottom: 16px; }
 .co-scope { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
