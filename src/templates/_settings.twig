@@ -3,4 +3,20 @@
 
 {% import '_includes/forms.twig' as forms %}
 
-{# ... #}
+{{ forms.lightswitchField({
+    label: 'Create revisions'|t('content-ops'),
+    instructions: 'Whether each save creates an entry revision noted with the changeset ID. Slower, but a second safety net next to undo.'|t('content-ops'),
+    name: 'createRevisions',
+    on: settings.createRevisions,
+}) }}
+
+{{ forms.textField({
+    label: 'Batch size'|t('content-ops'),
+    instructions: 'How many elements each background job batch processes.'|t('content-ops'),
+    name: 'batchSize',
+    type: 'number',
+    min: 1,
+    max: 1000,
+    value: settings.batchSize,
+    errors: settings.getErrors('batchSize'),
+}) }}

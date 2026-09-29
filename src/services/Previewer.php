@@ -1,0 +1,239 @@
+<?php
+
+namespace romanavr\contentops\services;
+
+use Craft;
+use craft\base\ElementInterface;
+use craft\elements\User;
+use craft\helpers\Db;
+use craft\helpers\Json;
+use romanavr\contentops\ContentOps;
+use romanavr\contentops\db\Table;
+use romanavr\contentops\enums\ChangesetStatus;
+use romanavr\contentops\enums\ChangesetType;
+use romanavr\contentops\enums\ChangeStatus;
+use romanavr\contentops\helpers\Values;
+use romanavr\contentops\models\Changeset;
+use romanavr\contentops\models\Operation;
+use romanavr\contentops\models\Selection;
+use romanavr\contentops\records\Changeset as ChangesetRecord;
+use Throwable;
+use yii\base\Component;
+use yii\base\InvalidArgumentException;
+
+/**
+ * Dry run: resolves a selection, computes every old → new value without writing to elements, and freezes
+ * the result as `pending` change rows. Apply later writes exactly those rows.
+ *
+ * @author Romanavr
+ * @since 1.0.0
+ */
+class Previewer extends Component
+{
+    // Const Properties
+    // =========================================================================
+
+    /**
+     * @var int Change rows buffered before a batch insert.
+     */
+    public const INSERT_BATCH_SIZE = 500;
+
+    // Private Properties
+    // =========================================================================
+
+    /**
+     * @var array<int, array<int, mixed>> Buffered change rows
+     */
+    private array $_rows = [];
+
+    // Public Methods
+    // =========================================================================
+
+    /**
+     * Previews operations on a selection and records the result as a new changeset.
+     *
+     * @param Selection $selection
+     * @param Operation[] $operations
+     * @param User|null $user The user making the change; `null` skips permission checks (console).
+     * @param ChangesetType $type
+     * @param callable|null $onProgress Called as `fn(int $examined)` periodically
+     * @return Changeset
+     * @throws InvalidArgumentException if the selection or an operation is invalid
+     * @throws \yii\db\Exception
+     */
+    public function preview(
+        Selection $selection,
+        array $operations,
+        ?User $user = null,
+        ChangesetType $type = ChangesetType::BulkEdit,
+        ?callable $onProgress = null,
+    ): Changeset {
+        $this->_validate($selection, $operations);
+
+        $plugin = ContentOps::getInstance();
+        $record = new ChangesetRecord();
+        $record->type = $type->value;
+        $record->status = ChangesetStatus::Previewed->value;
+        $record->userId = $user?->id;
+        $record->selection = Json::encode($selection->toArray());
+        $record->operations = Json::encode(array_map(fn(Operation $operation) => $operation->toArray(), $operations));
+        $record->options = Json::encode(['createRevisions' => $plugin->getSettings()->createRevisions]);
+        $record->save(false);
+
+        $opsByTarget = [];
+        foreach ($operations as $operation) {
+            $opsByTarget[$operation->target][] = $operation;
+        }
+
+        $targets = $plugin->getTargets();
+        $operators = $plugin->getOperators();
+        $elements = Craft::$app->getElements();
+        $total = 0;
+        $unchanged = 0;
+        $currentElementId = null;
+        $seenKeys = [];
+
+        foreach ($plugin->getSelections()->createQuery($selection)->each() as $element) {
+            /** @var ElementInterface $element */
+            $total++;
+
+            if ($element->id !== $currentElementId) {
+                $currentElementId = $element->id;
+                $seenKeys = [];
+            }
+
+            $canSave = $user === null || $elements->canSave($element, $user);
+
+            foreach ($opsByTarget as $handle => $targetOps) {
+                if (!$canSave) {
+                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Skipped, error: 'You don’t have permission to save this element.');
+                    continue;
+                }
+
+                $target = $targets->resolve($element, $handle);
+
+                if ($target === null) {
+                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Skipped, error: "“{$handle}” isn’t in this element’s field layout.");
+                    continue;
+                }
+
+                $unsupported = array_filter($targetOps, fn(Operation $operation) => !$operators->getOperator($operation->operator)->supports($target));
+
+                if ($unsupported) {
+                    $operation = reset($unsupported);
+                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Skipped, error: sprintf(
+                        'The %s operator can’t edit %s.',
+                        $operators->getOperator($operation->operator)::displayName(),
+                        $target->field ? $target->field::displayName() . ' fields' : "the “{$handle}” attribute",
+                    ));
+                    continue;
+                }
+
+                // Values shared between sites are only changed once per element.
+                $key = $targets->translationKey($element, $target);
+
+                if (isset($seenKeys[$handle][$key])) {
+                    continue;
+                }
+
+                $seenKeys[$handle][$key] = true;
+
+                try {
+                    $old = $targets->read($element, $target);
+                    $new = $old;
+
+                    foreach ($targetOps as $operation) {
+                        $new = $operators->getOperator($operation->operator)->apply($new, $operation);
+                    }
+
+                    if (Values::equal($old, $new)) {
+                        $unchanged++;
+                        continue;
+                    }
+
+                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Pending, Values::encode($old), Values::encode($new));
+                } catch (Throwable $e) {
+                    $this->_addRow($record->id, $element, $handle, ChangeStatus::Failed, error: $e->getMessage());
+                }
+            }
+
+            if (count($this->_rows) >= self::INSERT_BATCH_SIZE) {
+                $this->_flushRows();
+            }
+
+            if ($onProgress !== null && $total % 100 === 0) {
+                $onProgress($total);
+            }
+        }
+
+        $this->_flushRows();
+
+        $changesets = $plugin->getChangesets();
+        $changesets->refreshCounts($record->id, ['total' => $total, 'unchanged' => $unchanged]);
+
+        return $changesets->getChangesetById($record->id);
+    }
+
+    // Private Methods
+    // =========================================================================
+
+    /**
+     * @param Selection $selection
+     * @param Operation[] $operations
+     * @throws InvalidArgumentException
+     */
+    private function _validate(Selection $selection, array $operations): void
+    {
+        if (!$selection->validate()) {
+            throw new InvalidArgumentException(implode(' ', $selection->getFirstErrors()));
+        }
+
+        if (empty($operations)) {
+            throw new InvalidArgumentException('At least one operation is required.');
+        }
+
+        $operators = ContentOps::getInstance()->getOperators();
+
+        foreach ($operations as $operation) {
+            if (!$operation->validate()) {
+                throw new InvalidArgumentException(implode(' ', $operation->getFirstErrors()));
+            }
+
+            $operators->getOperator($operation->operator)->validateOperation($operation);
+        }
+    }
+
+    /**
+     * @param int $changesetId
+     * @param ElementInterface $element
+     * @param string $target
+     * @param ChangeStatus $status
+     * @param string|null $oldValue
+     * @param string|null $newValue
+     * @param string|null $error
+     */
+    private function _addRow(
+        int $changesetId,
+        ElementInterface $element,
+        string $target,
+        ChangeStatus $status,
+        ?string $oldValue = null,
+        ?string $newValue = null,
+        ?string $error = null,
+    ): void {
+        $this->_rows[] = [$changesetId, $element->id, $element->siteId, $target, $oldValue, $newValue, $status->value, $error];
+    }
+
+    /**
+     * @throws \yii\db\Exception
+     */
+    private function _flushRows(): void
+    {
+        if (empty($this->_rows)) {
+            return;
+        }
+
+        Db::batchInsert(Table::CHANGES, ['changesetId', 'elementId', 'siteId', 'target', 'oldValue', 'newValue', 'status', 'error'], $this->_rows);
+        $this->_rows = [];
+    }
+}

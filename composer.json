@@ -15,6 +15,7 @@
     "mcp/sdk": "^0.8.1"
   },
   "require-dev": {
+    "craftcms/ckeditor": "^5.0",
     "craftcms/ecs": "dev-main",
     "craftcms/phpstan": "dev-main",
     "phpstan/phpstan": "^2.1"
