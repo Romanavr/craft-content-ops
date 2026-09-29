@@ -1,0 +1,57 @@
+{# Status badges for changesets and changes. #}
+
+{% macro changesetStatus(status) %}
+  {%- set map = {
+    previewed: ['light', 'Preview (not applied)'],
+    queued: ['orange', 'Queued'],
+    running: ['orange', 'Applying…'],
+    applied: ['green', 'Applied'],
+    failed: ['red', 'Failed'],
+    undoing: ['orange', 'Undoing…'],
+    undone: ['light', 'Undone'],
+    partiallyUndone: ['orange', 'Partially undone'],
+  } -%}
+  {%- set info = map[status] ?? ['light', status] -%}
+  <span class="co-status"><span class="status {{ info[0] }}" aria-hidden="true"></span>{{ info[1]|t('content-ops') }}</span>
+{%- endmacro %}
+
+{% macro changeStatus(status) %}
+  {%- set map = {
+    pending: ['light', 'Pending'],
+    applied: ['green', 'Applied'],
+    skipped: ['light', 'Skipped'],
+    conflict: ['orange', 'Conflict'],
+    failed: ['red', 'Failed'],
+    undone: ['light', 'Undone'],
+    undoConflict: ['orange', 'Edited since'],
+  } -%}
+  {%- set info = map[status] ?? ['light', status] -%}
+  <span class="co-status"><span class="status {{ info[0] }}" aria-hidden="true"></span>{{ info[1]|t('content-ops') }}</span>
+{%- endmacro %}
+
+{% macro counts(changeset) %}
+  {%- set parts = [] -%}
+  {%- for key, label in {
+    pending: '{num, number} pending',
+    applied: '{num, number} applied',
+    undone: '{num, number} undone',
+    conflict: '{num, number} conflicts',
+    undoConflict: '{num, number} edited since',
+    skipped: '{num, number} skipped',
+    failed: '{num, number} failed',
+  } -%}
+    {%- if changeset.getCount(key) -%}
+      {%- set parts = parts|merge([label|t('content-ops', {num: changeset.getCount(key)})]) -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {{- parts ? parts|join(' · ') : 'No changes'|t('content-ops') -}}
+{%- endmacro %}
+
+{% macro operations(changeset) %}
+  {%- for operation in changeset.operations -%}
+    <code>{{ operation.target }}</code> {{ operation.operation }}
+    {%- if operation.options.value is defined and operation.options.value is not iterable %} “{{ operation.options.value|truncate(40) }}”{% endif -%}
+    {%- if operation.options.find is defined %} “{{ operation.options.find|truncate(30) }}” → “{{ operation.options.replace|truncate(30) }}”{% endif -%}
+    {%- if not loop.last %}; {% endif -%}
+  {%- endfor -%}
+{%- endmacro %}

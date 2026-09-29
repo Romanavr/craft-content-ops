@@ -58,8 +58,11 @@ class ChangesetsController extends Controller
     public function actionStatus(int $id): Response
     {
         $this->requireAcceptsJson();
-        $this->requirePermission('contentOps:bulkEdit');
         $changeset = $this->_changeset($id);
+
+        if (!ContentOps::getInstance()->getChangesets()->canView($changeset, static::currentUser())) {
+            throw new ForbiddenHttpException('You can’t view this changeset.');
+        }
 
         return $this->asJson([
             'id' => $changeset->id,

@@ -8,8 +8,11 @@ use craft\base\Model;
 use craft\base\Plugin;
 use craft\elements\Entry;
 use craft\events\RegisterElementActionsEvent;
+use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\services\Gc;
 use craft\services\UserPermissions;
+use craft\web\UrlManager;
 use romanavr\contentops\elements\actions\BulkEdit;
 use romanavr\contentops\models\Settings;
 use romanavr\contentops\services\Applier;
@@ -39,6 +42,7 @@ class ContentOps extends Plugin
 {
     public string $schemaVersion = '1.0.0';
     public bool $hasCpSettings = true;
+    public bool $hasCpSection = true;
 
     public static function config(): array
     {
@@ -127,6 +131,20 @@ class ContentOps extends Plugin
         return $this->get('targets');
     }
 
+    /**
+     * @inheritdoc
+     */
+    public function getCpNavItem(): ?array
+    {
+        $item = parent::getCpNavItem();
+        $item['label'] = Craft::t('content-ops', 'Content Ops');
+        $item['subnav'] = [
+            'history' => ['label' => Craft::t('content-ops', 'History'), 'url' => 'content-ops/history'],
+        ];
+
+        return $item;
+    }
+
     protected function createSettingsModel(): ?Model
     {
         return Craft::createObject(Settings::class);
@@ -152,6 +170,16 @@ class ContentOps extends Plugin
                     'contentOps:viewHistory' => ['label' => Craft::t('content-ops', 'View changeset history')],
                 ],
             ];
+        });
+
+        Event::on(UrlManager::class, UrlManager::EVENT_REGISTER_CP_URL_RULES, function(RegisterUrlRulesEvent $event) {
+            $event->rules['content-ops'] = 'content-ops/history/index';
+            $event->rules['content-ops/history'] = 'content-ops/history/index';
+            $event->rules['content-ops/history/<changesetId:\\d+>'] = 'content-ops/history/view';
+        });
+
+        Event::on(Gc::class, Gc::EVENT_RUN, function() {
+            $this->getChangesets()->purgeOld();
         });
 
         Event::on(Entry::class, Element::EVENT_REGISTER_ACTIONS, function(RegisterElementActionsEvent $event) {

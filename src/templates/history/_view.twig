@@ -1,0 +1,155 @@
+{% extends '_layouts/cp.twig' %}
+{% import 'content-ops/_macros.twig' as co %}
+{% import '_includes/forms.twig' as forms %}
+
+{% set title = 'Changeset #{id}'|t('content-ops', {id: changeset.id}) %}
+{% set selectedSubnavItem = 'history' %}
+{% set crumbs = [{label: 'Content Ops History'|t('content-ops'), url: cpUrl('content-ops/history')}] %}
+{% set inProgress = changeset.status.value in ['queued', 'running', 'undoing'] %}
+
+{% block actionButton %}
+  {% if canApply %}
+    <form method="post" class="co-inline-form">
+      {{ csrfInput() }}
+      {{ actionInput('content-ops/history/apply') }}
+      {{ hiddenInput('changesetId', changeset.id) }}
+      {{ redirectInput(craft.app.request.pathInfo) }}
+      <button type="submit" class="btn submit">{{ 'Apply {num, plural, =1{# change} other{# changes}}'|t('content-ops', {num: changeset.getCount('pending')}) }}</button>
+    </form>
+  {% endif %}
+  {% if canUndo %}
+    <form method="post" class="co-inline-form">
+      {{ csrfInput() }}
+      {{ actionInput('content-ops/history/undo') }}
+      {{ hiddenInput('changesetId', changeset.id) }}
+      {{ redirectInput(craft.app.request.pathInfo) }}
+      {% if changeset.getCount('undoConflict') %}
+        {{ hiddenInput('force', '1') }}
+        <button type="submit" class="btn submit">{{ 'Force undo'|t('content-ops') }}</button>
+      {% else %}
+        <button type="submit" class="btn submit">{{ 'Undo'|t('content-ops') }}</button>
+      {% endif %}
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="co-summary">
+    <p>
+      {{ co.changesetStatus(changeset.status.value) }}
+      {% if inProgress %}<span class="spinner co-spinner" aria-hidden="true"></span>{% endif %}
+    </p>
+    <dl class="co-meta">
+      <dt>{{ 'Changes'|t('content-ops') }}</dt><dd>{{ co.operations(changeset) }}</dd>
+      <dt>{{ 'Result'|t('content-ops') }}</dt><dd>{{ co.counts(changeset) }}{% if changeset.getCount('unchanged') %} · {{ '{num, number} already had the value'|t('content-ops', {num: changeset.getCount('unchanged')}) }}{% endif %}</dd>
+      <dt>{{ 'User'|t('app') }}</dt><dd>{{ user ? user.friendlyName : 'Console'|t('content-ops') }}</dd>
+      <dt>{{ 'Created'|t('content-ops') }}</dt><dd>{{ changeset.dateCreated|datetime('short') }}</dd>
+      {% if changeset.dateApplied %}<dt>{{ 'Applied'|t('content-ops') }}</dt><dd>{{ changeset.dateApplied|datetime('short') }}</dd>{% endif %}
+      {% if changeset.dateUndone %}<dt>{{ 'Undone'|t('content-ops') }}</dt><dd>{{ changeset.dateUndone|datetime('short') }}</dd>{% endif %}
+    </dl>
+
+    {% if changeset.getCount('undoConflict') %}
+      <p class="warning with-icon">
+        {{ '{num, plural, =1{One value was} other{# values were}} edited after this changeset ran, so undo left {num, plural, =1{it} other{them}} alone. “Force undo” overwrites those edits with the original values.'|t('content-ops', {num: changeset.getCount('undoConflict')}) }}
+      </p>
+    {% endif %}
+    {% if changeset.getCount('withDrafts') and changeset.status.value == 'previewed' %}
+      <p class="warning with-icon">
+        {{ '{num, plural, =1{One entry has drafts} other{# entries have drafts}} that will be marked as outdated.'|t('content-ops', {num: changeset.getCount('withDrafts')}) }}
+      </p>
+    {% endif %}
+  </div>
+
+  <nav class="co-filters" aria-label="{{ 'Filter by status'|t('content-ops') }}">
+    <a class="btn small{{ status is null ? ' active' }}" href="{{ url(craft.app.request.pathInfo) }}">{{ 'All'|t('app') }}</a>
+    {% for s in statuses %}
+      {% if changeset.getCount(s.value) %}
+        <a class="btn small{{ status and status.value == s.value ? ' active' }}" href="{{ url(craft.app.request.pathInfo, {status: s.value}) }}">
+          {{ co.changeStatus(s.value) }} ({{ changeset.getCount(s.value)|number }})
+        </a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+
+  {% if rows is empty %}
+    <p class="zilch">{{ 'No changes to show.'|t('content-ops') }}</p>
+  {% else %}
+    <div class="tableview">
+      <table class="data fullwidth co-changes">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Element'|t('app') }}</th>
+            {% if craft.app.isMultiSite %}<th scope="col">{{ 'Site'|t('app') }}</th>{% endif %}
+            <th scope="col">{{ 'Field'|t('app') }}</th>
+            <th scope="col">{{ 'Before'|t('content-ops') }}</th>
+            <th scope="col">{{ 'After'|t('content-ops') }}</th>
+            <th scope="col">{{ 'Status'|t('app') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.elementHtml|raw }}</td>
+              {% if craft.app.isMultiSite %}<td>{{ row.site }}</td>{% endif %}
+              <td>{{ row.target }}</td>
+              {% if row.change.oldValue is not null or row.change.newValue is not null %}
+                <td class="co-diff">{{ row.before|raw }}</td>
+                <td class="co-diff">{{ row.after|raw }}</td>
+              {% else %}
+                <td colspan="2"></td>
+              {% endif %}
+              <td>
+                {{ co.changeStatus(row.change.status) }}
+                {% if row.change.error %}<div class="smalltext light">{{ row.change.error }}</div>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if totalPages > 1 %}
+      <div class="flex co-pagination">
+        {% if page > 1 %}<a class="btn" href="{{ url(craft.app.request.pathInfo, {status: status ? status.value : null, page: page - 1}|filter) }}">{{ 'Previous'|t('app') }}</a>{% endif %}
+        <span class="light">{{ 'Page {page} of {total}'|t('content-ops', {page: page, total: totalPages}) }}</span>
+        {% if page < totalPages %}<a class="btn" href="{{ url(craft.app.request.pathInfo, {status: status ? status.value : null, page: page + 1}|filter) }}">{{ 'Next'|t('app') }}</a>{% endif %}
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
+{% css %}
+  .co-inline-form { display: inline-block; margin-left: 6px; }
+  .co-status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .co-spinner { vertical-align: middle; }
+  .co-meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 12px 0 20px; }
+  .co-meta dt { color: var(--light-text-color, #606d7b); }
+  .co-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .co-filters .btn.active { background: var(--gray-200, #dfe5ec); }
+  .co-changes td { vertical-align: top; }
+  .co-diff { font-family: var(--code-font, monospace); font-size: 12px; white-space: pre-wrap; word-break: break-word; max-width: 320px; }
+  .co-diff del { background: #fde2e2; color: #9b1c1c; text-decoration: line-through; }
+  .co-diff ins { background: #dcf5e3; color: #146c2e; text-decoration: none; }
+  .co-pagination { margin-top: 16px; gap: 12px; align-items: center; }
+{% endcss %}
+
+{% if inProgress %}
+  {% js %}
+    (function() {
+      const id = {{ changeset.id }};
+      const initial = {{ changeset.status.value|json_encode|raw }};
+      Craft.cp.runQueue();
+      const poll = async () => {
+        try {
+          const {data} = await Craft.sendActionRequest('GET', 'content-ops/changesets/status', {params: {id}});
+          if (data.status !== initial) {
+            window.location.reload();
+            return;
+          }
+        } catch (e) {}
+        setTimeout(poll, 2000);
+      };
+      setTimeout(poll, 1500);
+    })();
+  {% endjs %}
+{% endif %}

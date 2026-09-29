@@ -1,0 +1,53 @@
+{% extends '_layouts/cp.twig' %}
+{% import 'content-ops/_macros.twig' as co %}
+
+{% set title = 'Content Ops History'|t('content-ops') %}
+{% set selectedSubnavItem = 'history' %}
+
+{% block content %}
+  {% if changesets is empty %}
+    <p class="zilch">{{ 'No changesets yet. Select entries in an entry index and choose “Bulk edit…” from the actions menu.'|t('content-ops') }}</p>
+  {% else %}
+    <div class="tableview">
+      <table class="data fullwidth co-history">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">{{ 'Status'|t('app') }}</th>
+            <th scope="col">{{ 'Changes'|t('content-ops') }}</th>
+            <th scope="col">{{ 'Result'|t('content-ops') }}</th>
+            <th scope="col">{{ 'User'|t('app') }}</th>
+            <th scope="col">{{ 'Date Created'|t('app') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for changeset in changesets %}
+            <tr>
+              <td><a href="{{ cpUrl('content-ops/history/' ~ changeset.id) }}">#{{ changeset.id }}</a></td>
+              <td>{{ co.changesetStatus(changeset.status.value) }}</td>
+              <td class="co-ops">{{ co.operations(changeset) }}</td>
+              <td class="light">{{ co.counts(changeset) }}</td>
+              <td>{{ users[changeset.userId] is defined ? users[changeset.userId].friendlyName : (changeset.userId ? 'Deleted user'|t('content-ops') : 'Console'|t('content-ops')) }}</td>
+              <td>{{ changeset.dateCreated|datetime('short') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if totalPages > 1 %}
+      <div class="flex co-pagination">
+        {% if page > 1 %}<a class="btn" href="{{ url(craft.app.request.pathInfo, {page: page - 1}) }}">{{ 'Previous'|t('app') }}</a>{% endif %}
+        <span class="light">{{ 'Page {page} of {total}'|t('content-ops', {page: page, total: totalPages}) }}</span>
+        {% if page < totalPages %}<a class="btn" href="{{ url(craft.app.request.pathInfo, {page: page + 1}) }}">{{ 'Next'|t('app') }}</a>{% endif %}
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
+{% css %}
+  .co-history td { vertical-align: top; }
+  .co-history .co-ops { max-width: 420px; }
+  .co-status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .co-pagination { margin-top: 16px; gap: 12px; align-items: center; }
+{% endcss %}
