@@ -168,3 +168,20 @@ it('limits by element, not by element/site row', function() {
 
     expect($elementIds)->toHaveCount(2);
 });
+
+it('batches revision pruning into one job per batch', function() {
+    [$section] = seedSection(['a', 'b', 'c']);
+    // Craft skips a revision when the entry hasn't changed since its last one (to the second).
+    sleep(1);
+    $countJobs = fn(string $needle) => count(array_filter(
+        Craft::$app->getQueue()->getJobInfo(),
+        fn($job) => str_contains((string)$job['description'], $needle),
+    ));
+    $perSaveBefore = $countJobs('Pruning extra revisions');
+
+    $changeset = previewOp($section, op('title', 'append', ['value' => '!']));
+    ContentOps::getInstance()->getChangesets()->applyNow($changeset->id);
+
+    expect($countJobs('Pruning extra revisions'))->toBe($perSaveBefore)
+        ->and($countJobs("Pruning revisions for Content Ops changeset #$changeset->id"))->toBe(1);
+});

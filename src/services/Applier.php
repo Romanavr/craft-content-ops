@@ -6,16 +6,22 @@ use Craft;
 use craft\base\ElementInterface;
 use craft\elements\Entry;
 use craft\helpers\Db;
+use craft\helpers\Queue;
+use craft\queue\jobs\PruneRevisions;
 use romanavr\contentops\ContentOps;
 use romanavr\contentops\enums\ChangeStatus;
 use romanavr\contentops\errors\ConflictException;
 use romanavr\contentops\helpers\Values;
+use romanavr\contentops\jobs\PruneChangesetRevisions;
 use romanavr\contentops\models\Changeset;
 use romanavr\contentops\models\Target;
 use romanavr\contentops\operators\OperatorInterface;
 use romanavr\contentops\records\Change;
 use Throwable;
 use yii\base\Component;
+use yii\base\Event;
+use yii\queue\PushEvent;
+use yii\queue\Queue as YiiQueue;
 
 /**
  * Writes previewed changes to elements, and reverts them. Works one element/site at a time,
@@ -26,6 +32,14 @@ use yii\base\Component;
  */
 class Applier extends Component
 {
+    // Private Properties
+    // =========================================================================
+
+    /**
+     * @var array<string, array<string, mixed>> Craft prune-revision jobs held back while saving, keyed by element/site
+     */
+    private array $_deferredPruning = [];
+
     // Public Methods
     // =========================================================================
 
@@ -90,8 +104,60 @@ class Applier extends Component
         }, ChangeStatus::Undone, "Undo of Content Ops changeset #{$changeset->id}");
     }
 
+    /**
+     * Pushes one job that prunes revisions for everything saved since the last flush.
+     *
+     * Craft queues a separate “Pruning extra revisions” job after every save that creates a revision.
+     * For a bulk edit that would mean thousands of jobs, so the applier holds them back and batches them here.
+     *
+     * @param int $changesetId
+     */
+    public function flushDeferredPruning(int $changesetId): void
+    {
+        if (empty($this->_deferredPruning)) {
+            return;
+        }
+
+        Queue::push(new PruneChangesetRevisions([
+            'changesetId' => $changesetId,
+            'jobs' => array_values($this->_deferredPruning),
+        ]));
+        $this->_deferredPruning = [];
+    }
+
     // Private Methods
     // =========================================================================
+
+    /**
+     * Saves an element, holding back the per-save prune-revisions job Craft would queue.
+     *
+     * @param ElementInterface $element
+     * @return bool
+     * @throws Throwable
+     */
+    private function _saveElement(ElementInterface $element): bool
+    {
+        $handler = function(PushEvent $event) {
+            if ($event->job instanceof PruneRevisions) {
+                $job = $event->job;
+                $this->_deferredPruning["$job->canonicalId:$job->siteId"] = [
+                    'elementType' => $job->elementType,
+                    'canonicalId' => $job->canonicalId,
+                    'siteId' => $job->siteId,
+                    'maxRevisions' => $job->maxRevisions,
+                ];
+                $event->handled = true;
+            }
+        };
+
+        Event::on(YiiQueue::class, YiiQueue::EVENT_BEFORE_PUSH, $handler);
+
+        try {
+            return Craft::$app->getElements()->saveElement($element);
+        } finally {
+            Event::off(YiiQueue::class, YiiQueue::EVENT_BEFORE_PUSH, $handler);
+        }
+    }
 
     /**
      * Loads the element, runs `$write` for each matching change, and saves the element once.
@@ -182,7 +248,7 @@ class Applier extends Component
         $element->resaving = !($changeset->options['createRevisions'] ?? true);
 
         try {
-            $saved = Craft::$app->getElements()->saveElement($element);
+            $saved = $this->_saveElement($element);
         } catch (Throwable $e) {
             $this->_markAll($written, ChangeStatus::Failed, $e->getMessage());
             return;

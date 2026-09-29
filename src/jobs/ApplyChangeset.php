@@ -72,6 +72,14 @@ class ApplyChangeset extends BaseBatchedJob
     /**
      * @inheritdoc
      */
+    protected function afterBatch(): void
+    {
+        ContentOps::getInstance()->getApplier()->flushDeferredPruning($this->changesetId);
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function defaultDescription(): ?string
     {
         return "Applying Content Ops changeset #$this->changesetId";

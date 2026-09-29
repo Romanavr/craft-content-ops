@@ -409,6 +409,7 @@ class Changesets extends Component
                 }
             }
 
+            ContentOps::getInstance()->getApplier()->flushDeferredPruning($changesetId);
             gc_collect_cycles();
         }
     }
