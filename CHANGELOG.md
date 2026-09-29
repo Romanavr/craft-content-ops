@@ -1,6 +1,6 @@
 # Release Notes for Content Ops
 
-## Unreleased
+## 1.0.0-beta.2 - 2026-09-30
 
 ### Added
 - AI access over MCP (Pro): AI tools propose bulk edits and find & replace as changesets; people review and apply them in the CP, and can undo them.
@@ -9,6 +9,15 @@
 - History marks AI proposals and can filter those awaiting review; the Content Ops menu shows how many are waiting.
 - Settings: AI context notes, max items per AI changeset.
 - “Use AI access (MCP tokens)” permission.
+- Content Ops → Settings in the sidebar for admins (shown inactive where `allowAdminChanges` is off).
+
+### Changed
+- New plugin icon and a matching sidebar icon.
+- Settings are grouped into Saving changes, History, AI access and Advanced, with shorter instructions.
+- Shorter labels and text across Find & Replace, History and AI Access.
+
+### Upgrading
+- Run `php craft up` (adds the `contentops_tokens` table).
 
 ## 1.0.0-beta.1 - 2026-09-30
 
