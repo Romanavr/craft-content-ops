@@ -49,7 +49,11 @@ abstract class ChangeRows
         $targets = ContentOps::getInstance()->getTargets();
 
         return array_map(function(Change $change) use ($elements, $sites, $targets) {
-            [$before, $after] = Diff::inline(Values::decode($change->oldValue), Values::decode($change->newValue));
+            $old = Values::decode($change->oldValue);
+            $new = Values::decode($change->newValue);
+            [$before, $after] = Diff::isBlockList($old) && Diff::isBlockList($new)
+                ? Diff::blocks($old, $new)
+                : Diff::inline($old, $new);
             $element = $elements["$change->elementId:$change->siteId"] ?? null;
 
             return [

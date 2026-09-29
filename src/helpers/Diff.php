@@ -2,6 +2,7 @@
 
 namespace romanavr\contentops\helpers;
 
+use Craft;
 use craft\helpers\Html;
 
 /**
@@ -54,6 +55,68 @@ abstract class Diff
             self::_render($oldChars, $prefix, $suffix, 'del'),
             self::_render($newChars, $prefix, $suffix, 'ins'),
         ];
+    }
+
+    /**
+     * Returns `[beforeHtml, afterHtml]` for lists of nested entries (Matrix values): one line per block with its
+     * type and a short excerpt; removed blocks are struck through, added ones highlighted.
+     *
+     * @param array<int, array<string, mixed>> $old
+     * @param array<int, array<string, mixed>> $new
+     * @return array{0: string, 1: string}
+     */
+    public static function blocks(array $old, array $new): array
+    {
+        $oldIds = array_column($old, 'id');
+        $newIds = array_column($new, 'id');
+
+        $render = function(array $blocks, array $otherIds, string $tag): string {
+            $lines = array_map(function(array $block) use ($otherIds, $tag) {
+                $line = Html::encode(self::blockLabel($block));
+                $changed = ($block['id'] ?? null) === null || !in_array($block['id'], $otherIds, true);
+
+                return $changed ? Html::tag($tag, $line) : Html::tag('span', $line, ['class' => 'light']);
+            }, $blocks);
+
+            return $lines ? implode('<br>', $lines) : Html::tag('span', '—', ['class' => 'light']);
+        };
+
+        return [$render($old, $newIds, 'del'), $render($new, $oldIds, 'ins')];
+    }
+
+    /**
+     * Returns whether a value is a list of nested entry blocks.
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public static function isBlockList(mixed $value): bool
+    {
+        return is_array($value) && array_is_list($value) && ($value === [] || (is_array($value[0]) && array_key_exists('type', $value[0]) && array_key_exists('fields', $value[0])));
+    }
+
+    /**
+     * Returns “Type: excerpt” for a nested entry block.
+     *
+     * @param array<string, mixed> $block
+     * @return string
+     */
+    public static function blockLabel(array $block): string
+    {
+        $type = Craft::$app->getEntries()->getEntryTypeByHandle((string)($block['type'] ?? ''))->name ?? (string)($block['type'] ?? '?');
+        $text = trim((string)($block['title'] ?? ''));
+
+        if ($text === '') {
+            array_walk_recursive($block['fields'], function($value) use (&$text) {
+                if ($text === '' && is_string($value) && trim(strip_tags($value)) !== '') {
+                    $text = trim(strip_tags($value));
+                }
+            });
+        }
+
+        $text = preg_replace('/\s+/', ' ', $text);
+
+        return $text === '' ? $type : sprintf('%s: %s', $type, mb_strlen($text) > 50 ? mb_substr($text, 0, 49) . '…' : $text);
     }
 
     /**

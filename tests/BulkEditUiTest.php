@@ -43,3 +43,21 @@ it('escapes HTML and trims long context', function() {
         ->and($before)->toContain('&lt;b&gt;<del>x</del>&lt;/b&gt;')
         ->and($after)->toContain('<ins>y</ins>');
 });
+
+it('summarises nested entry changes instead of showing JSON', function() {
+    $old = [
+        ['id' => 1, 'type' => 'x', 'title' => null, 'fields' => ['text' => '<p>Keep me</p>']],
+        ['id' => 2, 'type' => 'x', 'title' => null, 'fields' => ['text' => 'Remove me']],
+    ];
+    $new = [
+        ['id' => 1, 'type' => 'x', 'title' => null, 'fields' => ['text' => '<p>Keep me</p>']],
+        ['id' => null, 'type' => 'x', 'title' => null, 'fields' => ['text' => 'Added']],
+    ];
+
+    [$before, $after] = Diff::blocks($old, $new);
+
+    expect($before)->toContain('<del>x: Remove me</del>')
+        ->and($before)->toContain('x: Keep me')
+        ->and($after)->toContain('<ins>x: Added</ins>')
+        ->and($after)->not->toContain('Remove me');
+});
