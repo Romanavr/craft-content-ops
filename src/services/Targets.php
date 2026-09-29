@@ -67,6 +67,15 @@ class Targets extends Component
         'authorIds' => 'Authors',
     ];
 
+    // Private Properties
+    // =========================================================================
+
+    /**
+     * @var array{key: string, entries: Entry[]}|null Nested entries of the last owner/site/Matrix field looked up
+     * (a preview asks for them once per nested target; this avoids re-querying for each)
+     */
+    private ?array $_nestedCache = null;
+
     // Public Methods
     // =========================================================================
 
@@ -157,10 +166,18 @@ class Targets extends Component
             return null;
         }
 
-        /** @var EntryQuery $query */
-        $query = $owner->getFieldValue($matrixHandle);
+        $key = "$owner->id:$owner->siteId:$matrixHandle";
 
-        return (clone $query)->type($typeHandle)->status(null)->all();
+        if ($this->_nestedCache === null || $this->_nestedCache['key'] !== $key) {
+            /** @var EntryQuery $query */
+            $query = $owner->getFieldValue($matrixHandle);
+            $this->_nestedCache = ['key' => $key, 'entries' => (clone $query)->status(null)->all()];
+        }
+
+        return array_values(array_filter(
+            $this->_nestedCache['entries'],
+            fn(Entry $entry) => $entry->getType()->handle === $typeHandle,
+        ));
     }
 
     /**

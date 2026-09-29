@@ -48,10 +48,17 @@
 {%- endmacro %}
 
 {% macro operations(changeset) %}
+  {%- if changeset.type.value == 'findReplace' and changeset.operations|length -%}
+    {%- set o = changeset.operations|first -%}
+    {{ 'Find'|t('content-ops') }} “{{ o.options.find|truncate(40) }}” → “{{ o.options.replace|truncate(40) }}”
+    {%- if o.options.regex ?? false %} <span class="light">(regex)</span>{% endif %}
+    <span class="light">· {{ '{num, plural, =1{# field} other{# fields}}'|t('content-ops', {num: changeset.operations|length}) }}</span>
+  {%- else -%}
   {%- for operation in changeset.operations -%}
     <code>{{ operation.target }}</code> {{ operation.operation }}
     {%- if operation.options.value is defined and operation.options.value is not iterable %} “{{ operation.options.value|truncate(40) }}”{% endif -%}
     {%- if operation.options.find is defined %} “{{ operation.options.find|truncate(30) }}” → “{{ operation.options.replace|truncate(30) }}”{% endif -%}
     {%- if not loop.last %}; {% endif -%}
   {%- endfor -%}
+  {%- endif -%}
 {%- endmacro %}

@@ -5,6 +5,7 @@ namespace romanavr\contentops\console\controllers;
 use craft\console\Controller;
 use craft\helpers\Console;
 use romanavr\contentops\ContentOps;
+use romanavr\contentops\enums\ChangesetType;
 use romanavr\contentops\enums\ChangeStatus;
 use romanavr\contentops\helpers\Values;
 use romanavr\contentops\models\Changeset;
@@ -220,6 +221,12 @@ class ChangesetsController extends Controller
      */
     public static function describeOperations(Changeset $changeset): string
     {
+        if ($changeset->type === ChangesetType::FindReplace && $changeset->operations) {
+            $options = $changeset->operations[0]->options;
+
+            return sprintf('find “%s” → “%s”%s in %d fields', $options['find'] ?? '', $options['replace'] ?? '', !empty($options['regex']) ? ' (regex)' : '', count($changeset->operations));
+        }
+
         return implode('; ', array_map(
             fn($operation) => "$operation->target: $operation->operation" . ($operation->options ? ' ' . json_encode($operation->options, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : ''),
             $changeset->operations,

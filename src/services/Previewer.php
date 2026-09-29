@@ -59,6 +59,7 @@ class Previewer extends Component
      * @param User|null $user The user making the change; `null` skips permission checks (console).
      * @param ChangesetType $type
      * @param callable|null $onProgress Called as `fn(int $examined)` periodically
+     * @param bool $ignoreMissingTargets Don't record elements that lack a target (Find & Replace searches many fields)
      * @return Changeset
      * @throws InvalidArgumentException if the selection or an operation is invalid
      * @throws \yii\db\Exception
@@ -69,6 +70,7 @@ class Previewer extends Component
         ?User $user = null,
         ChangesetType $type = ChangesetType::BulkEdit,
         ?callable $onProgress = null,
+        bool $ignoreMissingTargets = false,
     ): Changeset {
         $this->_validate($selection, $operations);
 
@@ -107,12 +109,16 @@ class Previewer extends Component
                 $subjects = Targets::isNestedPath($handle) ? $targets->nestedElements($element, $handle) : [$element];
 
                 if ($subjects === null) {
+                    if ($ignoreMissingTargets) {
+                        continue;
+                    }
+
                     $this->_addRow($record->id, $element, $handle, ChangeStatus::Skipped, error: "“{$this->_rootHandle($handle)}” isn’t in this element’s field layout.");
                     continue;
                 }
 
                 foreach ($subjects as $subject) {
-                    $unchanged += $this->_previewSubject($record->id, $subject, $handle, $targetOps, $user, $seenKeys);
+                    $unchanged += $this->_previewSubject($record->id, $subject, $handle, $targetOps, $user, $seenKeys, $ignoreMissingTargets);
                 }
             }
 
@@ -149,9 +155,10 @@ class Previewer extends Component
      * @param Operation[] $targetOps
      * @param User|null $user
      * @param array<string, bool> $seenKeys Translation keys already handled, shared across the element's sites
+     * @param bool $ignoreMissingTargets
      * @return int 1 if the value is unchanged, otherwise 0
      */
-    private function _previewSubject(int $changesetId, ElementInterface $element, string $handle, array $targetOps, ?User $user, array &$seenKeys): int
+    private function _previewSubject(int $changesetId, ElementInterface $element, string $handle, array $targetOps, ?User $user, array &$seenKeys, bool $ignoreMissingTargets = false): int
     {
         $plugin = ContentOps::getInstance();
         $targets = $plugin->getTargets();
@@ -163,6 +170,10 @@ class Previewer extends Component
         }
 
         $target = $targets->resolve($element, $handle);
+
+        if ($target === null && $ignoreMissingTargets) {
+            return 0;
+        }
 
         if ($target === null) {
             $this->_addRow($changesetId, $element, $handle, ChangeStatus::Skipped, error: "“{$handle}” isn’t in this element’s field layout.");

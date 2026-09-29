@@ -17,6 +17,7 @@ use romanavr\contentops\elements\actions\BulkEdit;
 use romanavr\contentops\models\Settings;
 use romanavr\contentops\services\Applier;
 use romanavr\contentops\services\Changesets;
+use romanavr\contentops\services\FindReplace;
 use romanavr\contentops\services\Operators;
 use romanavr\contentops\services\Previewer;
 use romanavr\contentops\services\Selections;
@@ -30,6 +31,7 @@ use yii\base\Event;
  * @method Settings getSettings()
  * @property-read Applier $applier
  * @property-read Changesets $changesets
+ * @property-read FindReplace $findReplace
  * @property-read Operators $operators
  * @property-read Previewer $previewer
  * @property-read Selections $selections
@@ -50,6 +52,7 @@ class ContentOps extends Plugin
             'components' => [
                 'applier' => Applier::class,
                 'changesets' => Changesets::class,
+                'findReplace' => FindReplace::class,
                 'operators' => Operators::class,
                 'previewer' => Previewer::class,
                 'selections' => Selections::class,
@@ -89,6 +92,16 @@ class ContentOps extends Plugin
     public function getChangesets(): Changesets
     {
         return $this->get('changesets');
+    }
+
+    /**
+     * Returns the find & replace service.
+     *
+     * @return FindReplace
+     */
+    public function getFindReplace(): FindReplace
+    {
+        return $this->get('findReplace');
     }
 
     /**

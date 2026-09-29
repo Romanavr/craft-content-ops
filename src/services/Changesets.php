@@ -330,6 +330,20 @@ class Changesets extends Component
     }
 
     /**
+     * Merges values into a changeset's options.
+     *
+     * @param int $changesetId
+     * @param array<string, mixed> $options
+     * @throws \yii\db\Exception
+     */
+    public function setOptions(int $changesetId, array $options): void
+    {
+        $record = $this->_getRecord($changesetId);
+        $record->options = Json::encode(array_merge(Json::decode($record->options ?? '{}') ?: [], $options));
+        $record->save(false);
+    }
+
+    /**
      * Sets a changeset's status.
      *
      * @param int $changesetId

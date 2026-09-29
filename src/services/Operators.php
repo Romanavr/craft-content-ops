@@ -5,6 +5,7 @@ namespace romanavr\contentops\services;
 use craft\events\RegisterComponentTypesEvent;
 use romanavr\contentops\models\Target;
 use romanavr\contentops\operators\DateOperator;
+use romanavr\contentops\operators\FindReplaceOperator;
 use romanavr\contentops\operators\LightswitchOperator;
 use romanavr\contentops\operators\MatrixOperator;
 use romanavr\contentops\operators\NumberOperator;
@@ -68,6 +69,7 @@ class Operators extends Component
                 DateOperator::class,
                 RelationOperator::class,
                 MatrixOperator::class,
+                FindReplaceOperator::class,
             ],
         ]);
         $this->trigger(self::EVENT_REGISTER_OPERATORS, $event);
