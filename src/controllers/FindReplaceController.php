@@ -51,19 +51,22 @@ class FindReplaceController extends Controller
     }
 
     /**
-     * Shows the search form, optionally prefilled from an earlier search.
+     * Shows the search form: prefilled from an earlier search (`?from=`), or with the values of a search
+     * that just failed validation.
      *
+     * @param MatchSpec|null $spec
+     * @param FindReplaceScope|null $scope
      * @return Response
      */
-    public function actionIndex(): Response
+    public function actionIndex(?MatchSpec $spec = null, ?FindReplaceScope $scope = null): Response
     {
         $from = (int)$this->request->getQueryParam('from');
         $previous = $from ? ContentOps::getInstance()->getChangesets()->getChangesetById($from) : null;
         $options = $previous?->operations[0]->options ?? [];
 
         return $this->renderTemplate('content-ops/find-replace/_index.twig', [
-            'spec' => new MatchSpec(array_intersect_key($options, array_flip(['find', 'replace', 'regex', 'caseSensitive', 'wholeWord', 'html']))),
-            'scope' => new FindReplaceScope($previous->options['scope'] ?? []),
+            'spec' => $spec ?? new MatchSpec(array_intersect_key($options, array_flip(['find', 'replace', 'regex', 'caseSensitive', 'wholeWord', 'html']))),
+            'scope' => $scope ?? new FindReplaceScope($previous->options['scope'] ?? []),
             'sections' => Craft::$app->getEntries()->getEditableSections(),
             'sites' => Craft::$app->getSites()->getEditableSites(),
         ]);
@@ -87,17 +90,18 @@ class FindReplaceController extends Controller
             'wholeWord' => (bool)$body->getBodyParam('wholeWord'),
             'html' => $body->getBodyParam('links') ? MatchSpec::HTML_TEXT_AND_LINKS : MatchSpec::HTML_TEXT,
         ]);
-        $scope = new FindReplaceScope([
-            'sections' => array_values(array_filter((array)$body->getBodyParam('sections', []))),
-            'siteIds' => array_values(array_map('intval', array_filter((array)$body->getBodyParam('siteIds', [])))),
-            'includeNested' => (bool)$body->getBodyParam('includeNested'),
-        ]);
 
         try {
+            $scope = new FindReplaceScope([
+                'sections' => $this->_selection('sections', Craft::t('content-ops', 'Choose at least one section.')),
+                'siteIds' => array_map('intval', $this->_selection('siteIds', Craft::t('content-ops', 'Choose at least one site.'))),
+                'includeNested' => (bool)$body->getBodyParam('includeNested'),
+            ]);
+
             $id = ContentOps::getInstance()->getFindReplace()->queuePreview($spec, $scope, static::currentUser());
         } catch (InvalidArgumentException $e) {
             $this->setFailFlash($e->getMessage());
-            Craft::$app->getUrlManager()->setRouteParams(['spec' => $spec, 'scope' => $scope]);
+            Craft::$app->getUrlManager()->setRouteParams(['spec' => $spec, 'scope' => $scope ?? new FindReplaceScope()]);
 
             return null;
         }
@@ -187,6 +191,32 @@ class FindReplaceController extends Controller
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Reads a “checkbox select with All” field: `*` (or no field at all, e.g. Sites on a single-site install)
+     * means everything; an explicit empty choice is an error rather than silently meaning everything.
+     *
+     * @param string $name
+     * @param string $emptyMessage
+     * @return string[] Empty for “all”
+     * @throws InvalidArgumentException
+     */
+    private function _selection(string $name, string $emptyMessage): array
+    {
+        $value = $this->request->getBodyParam($name);
+
+        if ($value === null || $value === '*') {
+            return [];
+        }
+
+        $values = array_values(array_filter((array)$value, fn($v) => $v !== '' && $v !== null));
+
+        if (empty($values)) {
+            throw new InvalidArgumentException($emptyMessage);
+        }
+
+        return $values;
+    }
 
     /**
      * @param int $changesetId

@@ -48,21 +48,23 @@
 
     {{ forms.checkboxSelectField({
       label: 'Sections'|t('app'),
-      instructions: 'Leave all unchecked to search every section.'|t('content-ops'),
+      instructions: 'Uncheck “All sections” to pick specific ones.'|t('content-ops'),
       name: 'sections',
       options: sections|map(s => {label: s.name, value: s.handle}),
-      values: scope.sections,
-      showAllOption: false,
+      values: scope.sections ?: '*',
+      showAllOption: true,
+      allLabel: 'All sections'|t('content-ops'),
     }) }}
 
     {% if sites|length > 1 %}
       {{ forms.checkboxSelectField({
         label: 'Sites'|t('app'),
-        instructions: 'Leave all unchecked to search every site.'|t('content-ops'),
+        instructions: 'Uncheck “All sites” to pick specific ones.'|t('content-ops'),
         name: 'siteIds',
         options: sites|map(s => {label: s.name, value: s.id}),
-        values: scope.siteIds,
-        showAllOption: false,
+        values: scope.siteIds ?: '*',
+        showAllOption: true,
+        allLabel: 'All sites'|t('content-ops'),
       }) }}
     {% endif %}
 

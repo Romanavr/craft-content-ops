@@ -1,5 +1,14 @@
 # Release Notes for Content Ops
 
+## Unreleased
+
+### Changed
+- Find & Replace searches all sections and all sites by default (“All sections” / “All sites” are checked); uncheck them to pick specific ones. Choosing nothing is now an error instead of meaning “everything”.
+- New sidebar icon.
+
+### Fixed
+- The Find & Replace form keeps what you typed when a search can’t start.
+
 ## 1.0.0-beta.2 - 2026-09-30
 
 ### Added
