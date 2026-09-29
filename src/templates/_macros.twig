@@ -32,6 +32,12 @@
   <span class="co-status"><span class="status {{ info[0] }}" aria-hidden="true"></span>{{ info[1]|t('content-ops') }}</span>
 {%- endmacro %}
 
+{% macro source(changeset) %}
+  {%- if (changeset.options.source ?? null) == 'ai' -%}
+    <span class="co-ai-badge" title="{{ 'Proposed by an AI tool over MCP'|t('content-ops') }}">AI · {{ changeset.options.client ?? '?' }}</span>
+  {%- endif -%}
+{%- endmacro %}
+
 {% macro counts(changeset) %}
   {%- set parts = [] -%}
   {%- for key, label in {

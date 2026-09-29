@@ -191,6 +191,11 @@ class ContentOps extends Plugin
     {
         $item = parent::getCpNavItem();
         $item['label'] = Craft::t('content-ops', 'Content Ops');
+
+        // Badge: AI proposals waiting for a person to review them.
+        if (Craft::$app->getUser()->checkPermission('contentOps:bulkEdit') && $this->isInstalled) {
+            $item['badgeCount'] = $this->getChangesets()->countAwaitingReview();
+        }
         $item['subnav'] = [
             'history' => ['label' => Craft::t('content-ops', 'History'), 'url' => 'content-ops/history'],
             'guide' => ['label' => Craft::t('content-ops', 'Guide'), 'url' => 'content-ops/guide'],

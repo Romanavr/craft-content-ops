@@ -100,3 +100,35 @@ it('keeps MCP proposals for Pro', function() {
 
     tools()->proposeBulkEdit(changes: [['target' => $field, 'operation' => 'append', 'options' => ['value' => '!']]], section: $section);
 })->throws(ToolCallException::class, 'requires Content Ops Pro');
+
+it('counts AI proposals awaiting review and lists them in the history', function() {
+    [$section, $field] = seedSection(['one']);
+    $service = ContentOps::getInstance()->getChangesets();
+    $before = $service->countAwaitingReview();
+
+    $proposal = tools()->proposeBulkEdit(changes: [['target' => $field, 'operation' => 'append', 'options' => ['value' => '!']]], section: $section);
+
+    expect($service->countAwaitingReview())->toBe($before + 1);
+
+    $this->actingAsAdmin()
+        ->get('/admin/content-ops/history?awaiting=1')
+        ->assertOk()
+        ->assertSee("#{$proposal['id']}")
+        ->assertSee('AI · test-client');
+
+    $service->applyNow($proposal['id']);
+
+    expect($service->countAwaitingReview())->toBe($before);
+});
+
+it('shares the site team notes with AI sessions', function() {
+    ContentOps::getInstance()->getSettings()->aiContext = 'Never edit the Legal section.';
+
+    try {
+        $instructions = \romanavr\contentops\mcp\ServerFactory::instructions(new McpContext());
+    } finally {
+        ContentOps::getInstance()->getSettings()->aiContext = '';
+    }
+
+    expect($instructions)->toContain('Never edit the Legal section.');
+});

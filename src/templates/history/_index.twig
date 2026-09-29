@@ -5,6 +5,10 @@
 {% set selectedSubnavItem = 'history' %}
 
 {% block content %}
+  <nav class="co-filters" aria-label="{{ 'Filter'|t('app') }}">
+    <a class="btn small{{ not awaitingReview ? ' active' }}" href="{{ cpUrl('content-ops/history') }}">{{ 'All'|t('app') }}</a>
+    <a class="btn small{{ awaitingReview ? ' active' }}" href="{{ cpUrl('content-ops/history', {awaiting: 1}) }}">{{ 'AI proposals awaiting review'|t('content-ops') }} ({{ awaitingCount }})</a>
+  </nav>
   {% if changesets is empty %}
     <p class="zilch">{{ 'No changesets yet. Use the “Bulk edit” button below any entry list, or Find & Replace.'|t('content-ops') }}</p>
   {% else %}
@@ -27,7 +31,7 @@
               <td>{{ co.changesetStatus(changeset.status.value) }}</td>
               <td class="co-ops">{{ co.operations(changeset) }}</td>
               <td class="light">{{ co.counts(changeset) }}</td>
-              <td>{{ users[changeset.userId] is defined ? users[changeset.userId].friendlyName : (changeset.userId ? 'Deleted user'|t('content-ops') : 'Console'|t('content-ops')) }}</td>
+              <td>{{ users[changeset.userId] is defined ? users[changeset.userId].friendlyName : (changeset.userId ? 'Deleted user'|t('content-ops') : 'Console'|t('content-ops')) }} {{ co.source(changeset) }}</td>
               <td>{{ changeset.dateCreated|datetime('short') }}</td>
             </tr>
           {% endfor %}
@@ -50,4 +54,7 @@
   .co-history .co-ops { max-width: 420px; }
   .co-status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
   .co-pagination { margin-top: 16px; gap: 12px; align-items: center; }
+  .co-filters { display: flex; gap: 6px; margin-bottom: 14px; }
+  .co-filters .btn.active { background: var(--gray-200, #dfe5ec); }
+  .co-ai-badge { font-size: 11px; padding: 1px 6px; border-radius: 8px; background: #efe7ff; color: #5b2bb5; white-space: nowrap; }
 {% endcss %}

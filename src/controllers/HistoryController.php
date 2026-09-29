@@ -66,12 +66,14 @@ class HistoryController extends Controller
     {
         $user = static::currentUser();
         $page = max(1, (int)$this->request->getQueryParam('page', 1));
+        $awaitingReview = (bool)$this->request->getQueryParam('awaiting');
         $changesets = ContentOps::getInstance()->getChangesets();
 
         [$items, $total] = $changesets->getChangesetsPage(
             $user->can('contentOps:viewHistory') ? null : $user->id,
             self::PAGE_SIZE,
             ($page - 1) * self::PAGE_SIZE,
+            $awaitingReview,
         );
 
         return $this->renderTemplate('content-ops/history/_index.twig', [
@@ -80,6 +82,8 @@ class HistoryController extends Controller
             'page' => $page,
             'totalPages' => max(1, (int)ceil($total / self::PAGE_SIZE)),
             'total' => $total,
+            'awaitingReview' => $awaitingReview,
+            'awaitingCount' => $changesets->countAwaitingReview(),
         ]);
     }
 

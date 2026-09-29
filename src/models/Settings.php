@@ -36,6 +36,11 @@ class Settings extends Model
      */
     public ?int $mcpMaxElements = 1000;
 
+    /**
+     * @var string Notes for AI tools about this site (tone of voice, naming rules, what not to touch). Exposed over MCP.
+     */
+    public string $aiContext = '';
+
     // Public Methods
     // =========================================================================
 

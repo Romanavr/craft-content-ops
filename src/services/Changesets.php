@@ -67,9 +67,10 @@ class Changesets extends Component
      * @param int|null $userId Only this user's changesets, or `null` for everyone's
      * @param int $limit
      * @param int $offset
+     * @param bool $awaitingReview Only AI proposals nobody has applied yet
      * @return array{0: Changeset[], 1: int} The changesets and the total count
      */
-    public function getChangesetsPage(?int $userId, int $limit, int $offset): array
+    public function getChangesetsPage(?int $userId, int $limit, int $offset, bool $awaitingReview = false): array
     {
         $query = ChangesetRecord::find()->orderBy(['id' => SORT_DESC]);
 
@@ -77,11 +78,25 @@ class Changesets extends Component
             $query->where(['userId' => $userId]);
         }
 
+        if ($awaitingReview) {
+            $query->andWhere(['id' => $this->_awaitingReviewIds() ?: [0]]);
+        }
+
         $total = (int)(clone $query)->count();
         /** @var ChangesetRecord[] $records */
         $records = $query->limit($limit)->offset($offset)->all();
 
         return [array_map(fn(ChangesetRecord $record) => Changeset::fromRecord($record), $records), $total];
+    }
+
+    /**
+     * Counts AI-proposed changesets that nobody has applied yet.
+     *
+     * @return int
+     */
+    public function countAwaitingReview(): int
+    {
+        return count($this->_awaitingReviewIds());
     }
 
     /**
@@ -376,6 +391,25 @@ class Changesets extends Component
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Returns the IDs of AI-proposed changesets that nobody has applied yet.
+     *
+     * @return int[]
+     */
+    private function _awaitingReviewIds(): array
+    {
+        $rows = (new Query())
+            ->select(['id', 'options'])
+            ->from(Table::CHANGESETS)
+            ->where(['status' => ChangesetStatus::Previewed->value])
+            ->all();
+
+        return array_values(array_map(fn($row) => (int)$row['id'], array_filter(
+            $rows,
+            fn($row) => (Json::decode($row['options'] ?? '{}')['source'] ?? null) === 'ai',
+        )));
+    }
 
     /**
      * Returns the ID of the most recently created changeset that was applied (or partially undone).

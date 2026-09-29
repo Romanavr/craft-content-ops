@@ -33,3 +33,21 @@
     value: settings.historyRetentionDays,
     errors: settings.getErrors('historyRetentionDays'),
 }) }}
+
+{{ forms.textareaField({
+    label: 'AI context'|t('content-ops'),
+    instructions: 'Notes for AI tools connected over MCP: tone of voice, naming rules, sections they must not change… Shared with every AI session as `project://context`.'|t('content-ops'),
+    name: 'aiContext',
+    value: settings.aiContext,
+    rows: 6,
+}) }}
+
+{{ forms.textField({
+    label: 'Max items per AI changeset'|t('content-ops'),
+    instructions: 'Proposals over MCP that would change more than this are refused.'|t('content-ops'),
+    name: 'mcpMaxElements',
+    type: 'number',
+    min: 1,
+    value: settings.mcpMaxElements,
+    errors: settings.getErrors('mcpMaxElements'),
+}) }}

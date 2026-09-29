@@ -54,6 +54,14 @@ class ServerFactory
                 description: 'Sites, sections, entry types, field layouts and fields of this Craft project.',
                 mimeType: 'application/json',
             )
+            ->addResource(
+                handler: fn() => ['context' => ContentOps::getInstance()->getSettings()->aiContext ?: 'No notes.'],
+                uri: 'project://context',
+                name: 'project_context',
+                title: 'Project context',
+                description: 'Notes from the site team for AI tools: tone of voice, naming rules, what not to change.',
+                mimeType: 'application/json',
+            )
             ->addTool(
                 handler: [$contentTools, 'searchContent'],
                 name: 'search_content',
@@ -95,6 +103,12 @@ class ServerFactory
 Content Ops exposes a Craft CMS 5 project. Call `get_project_schema` first to learn the sites, sections,
 entry types and fields; use `search_content` and `read_entry` to read content.
 MD;
+
+        $notes = trim(ContentOps::getInstance()->getSettings()->aiContext);
+
+        if ($notes !== '') {
+            $base .= "\n\nNotes from the site team (also in project://context):\n" . $notes;
+        }
 
         return $base . "\n\n" . match ($context->mode) {
             McpContext::MODE_READONLY => 'This session is read-only.',
