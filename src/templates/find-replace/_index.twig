@@ -84,5 +84,8 @@
   .co-pro-option { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
   .co-option-note { flex-basis: 100%; padding-left: 26px; font-size: 12px; color: var(--light-text-color, #606d7b); }
   .co-fr-notes { list-style: disc; padding-left: 18px; margin: 0 0 20px; }
+  /* While “All sections/sites” is checked, the individual items are included but locked: show them greyed out. */
+  .co-fr-form .checkbox-select-item:not(.all) input.checkbox:disabled,
+  .co-fr-form .checkbox-select-item:not(.all) input.checkbox:disabled + label { opacity: .45; cursor: not-allowed; }
   .co-pro-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px; border-radius: 8px; background: var(--blue-050, #e3f0fe); color: var(--blue-800, #1e4b8c); }
 {% endcss %}

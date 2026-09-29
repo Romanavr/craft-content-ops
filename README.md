@@ -22,7 +22,7 @@ Each run is stored as a **changeset**: a log of every old and new value. That lo
 On any entry index, click **Bulk edit** in the footer (or select entries and use **Bulk edit…** in the actions menu):
 
 - **Scope**: the selected entries, or *all entries matching the current view* (every page, including your search and filters).
-- **Sites**: which sites to change.
+- **Sites**: which sites to change (all are checked by default).
 - **Changes**: pick a field, an operation and a value; stack several. Fields that only some entries have show "applies to N of M".
 - **Preview** shows a before/after table (and warns about entries with drafts). **Apply** runs in the background and refreshes the list when done.
 
@@ -40,7 +40,7 @@ On any entry index, click **Bulk edit** in the footer (or select entries and use
 
 ### Find & Replace
 
-**Content Ops → Find & Replace** searches titles, Plain Text and CKEditor fields (optionally inside Matrix nested entries too) across chosen sections and sites.
+**Content Ops → Find & Replace** searches titles, Plain Text and CKEditor fields (optionally inside Matrix nested entries too) across all sections and sites by default (uncheck “All” to pick specific ones).
 
 - Case-sensitive, whole words, and regular expressions (`$1` in replacements; runaway patterns are stopped safely).
 - In CKEditor fields only **visible text** is searched: HTML tags, reference tags (`{entry:12:url}`) and embedded entries are never touched. Optionally also replace inside `href`/`src` (e.g. moving `http://old.test` to `https://new.test`).

@@ -1,10 +1,12 @@
 # Release Notes for Content Ops
 
-## Unreleased
+## 1.0.0-beta.3 - 2026-09-30
 
 ### Changed
 - Find & Replace searches all sections and all sites by default (“All sections” / “All sites” are checked); uncheck them to pick specific ones. Choosing nothing is now an error instead of meaning “everything”.
 - New sidebar icon.
+- While “All sections” / “All sites” is checked, the individual items are shown greyed out.
+- The Bulk edit window checks all sites by default; unchecking every site shows an error instead of falling back to the current site.
 
 ### Fixed
 - The Find & Replace form keeps what you typed when a search can’t start.

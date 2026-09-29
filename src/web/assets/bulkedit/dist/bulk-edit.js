@@ -82,11 +82,11 @@
         this.addListener($scope.find('input'), 'change', 'loadTargets');
 
         if (this.sites.length > 1) {
-          const currentSiteId = this.elementIndex.siteId;
+          // All sites are checked by default; uncheck the ones to leave alone.
           const $sites = $('<div class="co-sites"/>').append($('<span class="light"/>').text(t('Sites:') + ' '));
           this.sites.forEach((site) => {
             $('<label class="co-checkbox"/>')
-              .append($('<input type="checkbox" name="siteIds[]"/>').val(site.id).prop('checked', site.id == currentSiteId))
+              .append($('<input type="checkbox" name="siteIds[]"/>').val(site.id).prop('checked', true))
               .append(document.createTextNode(' ' + site.name))
               .appendTo($sites);
           });
@@ -99,8 +99,12 @@
       },
 
       siteIds: function() {
-        const ids = this.$editor.find('input[name="siteIds[]"]:checked').map((i, el) => parseInt(el.value)).get();
-        return ids.length ? ids : [this.elementIndex.siteId];
+        const $sites = this.$editor.find('input[name="siteIds[]"]');
+        // Single-site installs have no site checkboxes: use the index's site.
+        if (!$sites.length) {
+          return [this.elementIndex.siteId];
+        }
+        return $sites.filter(':checked').map((i, el) => parseInt(el.value)).get();
       },
 
       requestData: function(extra) {
@@ -138,6 +142,10 @@
         const operations = this.operations();
         if (!operations.length) {
           Craft.cp.displayError(t('Choose a field to change.'));
+          return;
+        }
+        if (!this.siteIds().length) {
+          Craft.cp.displayError(t('Choose at least one site.'));
           return;
         }
 
