@@ -1,0 +1,49 @@
+{
+  "name": "romanavr/craft-content-ops",
+  "description": "Bulk edit and find & replace for Craft CMS, with preview and undo.",
+  "type": "craft-plugin",
+  "license": "proprietary",
+  "support": {
+    "issues": "https://github.com/romanavr/craft-content-ops/issues?state=open",
+    "source": "https://github.com/romanavr/craft-content-ops",
+    "docs": "https://github.com/romanavr/craft-content-ops",
+    "rss": "https://github.com/romanavr/craft-content-ops/releases.atom"
+  },
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.11.0",
+    "mcp/sdk": "^0.8.1"
+  },
+  "require-dev": {
+    "craftcms/ecs": "dev-main",
+    "craftcms/phpstan": "dev-main",
+    "phpstan/phpstan": "^2.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "romanavr\\contentops\\": "src/"
+    }
+  },
+  "extra": {
+    "handle": "content-ops",
+    "name": "Content Ops",
+    "developer": "Romanavr",
+    "documentationUrl": "https://github.com/romanavr/craft-content-ops",
+    "class": "romanavr\\contentops\\ContentOps"
+  },
+  "scripts": {
+    "check-cs": "ecs check --ansi",
+    "fix-cs": "ecs check --ansi --fix",
+    "phpstan": "phpstan --memory-limit=1G"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    },
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true,
+      "craftcms/plugin-installer": true
+    }
+  }
+}
