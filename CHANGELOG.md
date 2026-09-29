@@ -1,6 +1,6 @@
 # Release Notes for Content Ops
 
-## Unreleased
+## 1.0.0-beta.1 - 2026-09-30
 
 ### Added
 - Bulk edit for entries: “Bulk edit” button on every entry index (selected entries, or all entries matching the current view) and a “Bulk edit…” element action.
