@@ -46,7 +46,7 @@ function frPreview(array $spec, array $scope)
 
 it('finds and replaces across text fields, HTML text and nested entries', function() {
     $s = seedFindReplace();
-    $changeset = frPreview(['find' => 'Acme', 'replace' => 'Globex'], ['sections' => [$s['section']->handle]]);
+    $changeset = frPreview(['find' => 'Acme', 'replace' => 'Globex'], ['sections' => [$s['section']->handle], 'includeNested' => true]);
 
     $targets = collect(ContentOps::getInstance()->getChangesets()->getChanges($changeset->id))->pluck('target')->unique()->sort()->values()->all();
     $expected = collect(['title', $s['summary']->handle, $s['body']->handle, "{$s['matrix']->handle}.{$s['blockTypeHandle']}.{$s['quoteHandle']}"])->sort()->values()->all();

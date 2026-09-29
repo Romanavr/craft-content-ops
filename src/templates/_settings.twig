@@ -23,7 +23,10 @@
 
 {{ forms.textField({
     label: 'History retention (days)'|t('content-ops'),
-    instructions: 'Changesets older than this are deleted and can no longer be undone. Leave blank to keep them forever.'|t('content-ops'),
+    instructions: plugin.isPro()
+        ? 'Changesets older than this are deleted and can no longer be undone. Leave blank to keep them forever.'|t('content-ops')
+        : 'Content Ops Lite keeps 30 days of history. Setting the retention period is available in Content Ops Pro.'|t('content-ops'),
+    disabled: not plugin.isPro(),
     name: 'historyRetentionDays',
     type: 'number',
     min: 1,

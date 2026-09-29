@@ -57,6 +57,8 @@ class FindReplace extends Component
             throw new InvalidArgumentException(implode(' ', $spec->getFirstErrors()));
         }
 
+        $this->_requireEdition($spec, $scope);
+
         Matcher::validate($spec);
 
         $siteIds = $scope->siteIds ?: Craft::$app->getSites()->getAllSiteIds();
@@ -111,6 +113,8 @@ class FindReplace extends Component
         if (!$spec->validate()) {
             throw new InvalidArgumentException(implode(' ', $spec->getFirstErrors()));
         }
+
+        $this->_requireEdition($spec, $scope);
 
         Matcher::validate($spec);
 
@@ -183,6 +187,8 @@ class FindReplace extends Component
      */
     public function exclude(Changeset $changeset, array $excluded): void
     {
+        ContentOps::getInstance()->requirePro('Excluding individual matches');
+
         if ($changeset->type !== ChangesetType::FindReplace || $changeset->status->value !== 'previewed') {
             throw new InvalidArgumentException('Only previewed Find & Replace changesets can be refined.');
         }
@@ -339,6 +345,29 @@ class FindReplace extends Component
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Lite gets plain-text Find & Replace; regex, link/image URLs and nested entries are Pro.
+     *
+     * @param MatchSpec $spec
+     * @param FindReplaceScope $scope
+     */
+    private function _requireEdition(MatchSpec $spec, FindReplaceScope $scope): void
+    {
+        $plugin = ContentOps::getInstance();
+
+        if ($spec->regex) {
+            $plugin->requirePro('Regular expressions');
+        }
+
+        if ($spec->html === MatchSpec::HTML_TEXT_AND_LINKS) {
+            $plugin->requirePro('Replacing inside links and image URLs');
+        }
+
+        if ($scope->includeNested) {
+            $plugin->requirePro('Searching Matrix nested entries');
+        }
+    }
 
     /**
      * @param FindReplaceScope $scope

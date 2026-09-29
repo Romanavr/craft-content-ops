@@ -48,6 +48,9 @@
       {% if changeset.dateUndone %}<dt>{{ 'Undone'|t('content-ops') }}</dt><dd>{{ changeset.dateUndone|datetime('short') }}</dd>{% endif %}
     </dl>
 
+    {% if not canUndo and not craft.app.plugins.getPlugin('content-ops').isPro() and changeset.status.value in ['applied', 'partiallyUndone'] %}
+      <p class="light">{{ 'Content Ops Lite can undo the most recent changeset. Undoing any changeset from the history is available in Content Ops Pro.'|t('content-ops') }}</p>
+    {% endif %}
     {% if changeset.getCount('undoConflict') %}
       <p class="warning with-icon">
         {{ '{num, plural, =1{One value was} other{# values were}} edited after this changeset ran, so undo left {num, plural, =1{it} other{them}} alone. “Force undo” overwrites those edits with the original values.'|t('content-ops', {num: changeset.getCount('undoConflict')}) }}

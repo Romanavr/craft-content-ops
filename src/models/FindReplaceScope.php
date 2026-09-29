@@ -36,7 +36,7 @@ class FindReplaceScope extends Model
     public array $targets = [];
 
     /**
-     * @var bool Also search text fields inside Matrix nested entries.
+     * @var bool Also search text fields inside Matrix nested entries (Pro).
      */
-    public bool $includeNested = true;
+    public bool $includeNested = false;
 }

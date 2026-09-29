@@ -120,9 +120,9 @@ class Targets extends Component
             $targets[] = $this->_describe(new Target(['handle' => $handle, 'field' => $field]), $field->name, 'Fields', $count, $total);
         }
 
-        // Fields inside Matrix nested entries, as matrixField.entryType.innerField
+        // Fields inside Matrix nested entries, as matrixField.entryType.innerField (Pro)
         foreach ($fields as $handle => ['field' => $field, 'count' => $count]) {
-            if (!$field instanceof Matrix) {
+            if (!$field instanceof Matrix || !ContentOps::getInstance()->isPro()) {
                 continue;
             }
 
@@ -479,6 +479,10 @@ class Targets extends Component
         $operator = ContentOps::getInstance()->getOperators()->getOperatorsForTarget($target)[0] ?? null;
 
         if ($operator === null) {
+            return null;
+        }
+
+        if ($operator::handle() === 'matrix' && !ContentOps::getInstance()->isPro()) {
             return null;
         }
 

@@ -15,6 +15,7 @@ use craft\services\UserPermissions;
 use craft\web\UrlManager;
 use craft\web\View;
 use romanavr\contentops\elements\actions\BulkEdit;
+use romanavr\contentops\errors\ProFeatureException;
 use romanavr\contentops\models\Settings;
 use romanavr\contentops\services\Applier;
 use romanavr\contentops\services\Changesets;
@@ -44,9 +45,43 @@ use yii\base\Event;
  */
 class ContentOps extends Plugin
 {
+    public const EDITION_LITE = 'lite';
+    public const EDITION_PRO = 'pro';
+
     public string $schemaVersion = '1.0.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
+
+    /**
+     * @inheritdoc
+     */
+    public static function editions(): array
+    {
+        return [self::EDITION_LITE, self::EDITION_PRO];
+    }
+
+    /**
+     * Returns whether the Pro edition is active.
+     *
+     * @return bool
+     */
+    public function isPro(): bool
+    {
+        return $this->is(self::EDITION_PRO);
+    }
+
+    /**
+     * Throws if a Pro feature is used in Lite. Enforced in services, so it covers the CP, console and MCP alike.
+     *
+     * @param string $feature Human-readable feature name, e.g. “Regular expressions”
+     * @throws ProFeatureException
+     */
+    public function requirePro(string $feature): void
+    {
+        if (!$this->isPro()) {
+            throw new ProFeatureException("$feature requires Content Ops Pro.");
+        }
+    }
 
     public static function config(): array
     {

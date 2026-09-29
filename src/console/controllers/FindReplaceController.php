@@ -79,9 +79,9 @@ class FindReplaceController extends Controller
     public ?string $fields = null;
 
     /**
-     * @var bool Search inside Matrix nested entries.
+     * @var bool Search inside Matrix nested entries (Pro).
      */
-    public bool $nested = true;
+    public bool $nested = false;
 
     /**
      * @var bool Apply right after previewing.

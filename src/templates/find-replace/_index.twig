@@ -1,5 +1,7 @@
 {% extends '_layouts/cp.twig' %}
 {% import '_includes/forms.twig' as forms %}
+{% import 'content-ops/_macros.twig' as co %}
+{% set isPro = craft.app.plugins.getPlugin('content-ops').isPro() %}
 
 {% set title = 'Find & Replace'|t('content-ops') %}
 {% set selectedSubnavItem = 'find-replace' %}
@@ -29,10 +31,13 @@
       <legend class="h6">{{ 'Options'|t('content-ops') }}</legend>
       {{ forms.checkbox({label: 'Case-sensitive'|t('content-ops'), name: 'caseSensitive', checked: spec.caseSensitive}) }}
       {{ forms.checkbox({label: 'Whole words only'|t('content-ops'), name: 'wholeWord', checked: spec.wholeWord}) }}
-      {{ forms.checkbox({label: 'Regular expression'|t('content-ops'), name: 'regex', checked: spec.regex}) }}
-      {{ forms.checkbox({label: 'Also replace inside links and image URLs (href/src) — e.g. for domain moves'|t('content-ops'), name: 'links', checked: spec.html == 'textAndLinks'}) }}
-      {{ forms.checkbox({label: 'Include nested entries (Matrix)'|t('content-ops'), name: 'includeNested', checked: scope.includeNested}) }}
+      <div class="co-pro-option">{{ forms.checkbox({label: 'Regular expression'|t('content-ops'), name: 'regex', checked: isPro and spec.regex, disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}</div>
+      <div class="co-pro-option">{{ forms.checkbox({label: 'Also replace inside links and image URLs (href/src) — e.g. for domain moves'|t('content-ops'), name: 'links', checked: isPro and spec.html == 'textAndLinks', disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}</div>
+      <div class="co-pro-option">{{ forms.checkbox({label: 'Include nested entries (Matrix)'|t('content-ops'), name: 'includeNested', checked: isPro and scope.includeNested, disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}</div>
     </fieldset>
+    {% if not isPro %}
+      <p class="light">{{ 'Content Ops Pro adds regular expressions, link and image URL replacement, Matrix support and choosing individual matches.'|t('content-ops') }}</p>
+    {% endif %}
 
     {{ forms.checkboxSelectField({
       label: 'Sections'|t('app'),
@@ -63,4 +68,6 @@
 {% css %}
   .co-fr-form { max-width: 720px; }
   .co-fr-options { border: 0; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 6px; }
+  .co-pro-option { display: flex; align-items: center; gap: 8px; }
+  .co-pro-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px; border-radius: 8px; background: var(--blue-050, #e3f0fe); color: var(--blue-800, #1e4b8c); }
 {% endcss %}

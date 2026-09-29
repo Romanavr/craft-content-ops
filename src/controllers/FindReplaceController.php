@@ -152,6 +152,12 @@ class FindReplaceController extends Controller
     {
         $this->requirePostRequest();
         $changeset = $this->_changeset((int)$this->request->getRequiredBodyParam('changesetId'));
+
+        // Lite can't exclude individual matches; applying everything still works.
+        if (!ContentOps::getInstance()->isPro() && $this->request->getBodyParam('apply')) {
+            return $this->_apply($changeset->id);
+        }
+
         $shown = (array)$this->request->getBodyParam('shown', []);
         $included = (array)$this->request->getBodyParam('include', []);
         $excluded = [];
