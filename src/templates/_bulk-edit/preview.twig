@@ -22,9 +22,9 @@
       <table class="data fullwidth">
         <thead>
           <tr>
-            <th scope="col">{{ 'Element'|t('app') }}</th>
-            {% if craft.app.isMultiSite %}<th scope="col">{{ 'Site'|t('app') }}</th>{% endif %}
-            <th scope="col">{{ 'Field'|t('app') }}</th>
+            <th scope="col" class="co-col-element">{{ 'Element'|t('app') }}</th>
+            {% if craft.app.isMultiSite %}<th scope="col" class="co-col-site">{{ 'Site'|t('app') }}</th>{% endif %}
+            <th scope="col" class="co-col-field">{{ 'Field'|t('app') }}</th>
             <th scope="col">{{ 'Before'|t('content-ops') }}</th>
             <th scope="col">{{ 'After'|t('content-ops') }}</th>
           </tr>

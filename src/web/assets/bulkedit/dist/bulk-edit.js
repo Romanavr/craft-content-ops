@@ -151,7 +151,7 @@
           Craft.initUiElements(this.$preview);
           const pending = data.counts.pending || 0;
           this.$applyBtn
-            .text(t('{num, plural, =1{Apply # change} other{Apply # changes}}', {num: pending}))
+            .text(pending === 1 ? t('Apply 1 change') : t('Apply {num} changes', {num: Craft.formatNumber(pending)}))
             .toggleClass('disabled', pending === 0)
             .prop('disabled', pending === 0);
           this.showPreview();
@@ -325,6 +325,7 @@
       const $remove = $('<button type="button" class="delete icon co-remove"/>').attr('title', Craft.t('app', 'Remove')).appendTo(this.$row);
       this.addListener($remove, 'activate', () => {
         this.$row.remove();
+        this.modal.updateSizeAndPosition();
         this.destroy();
       });
 
