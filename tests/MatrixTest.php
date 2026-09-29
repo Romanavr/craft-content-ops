@@ -140,3 +140,15 @@ it('removes nested entries and undo restores the same ones in place', function()
     expect(blockValues($owners[0], $matrix, $text))->toBe(['keep', 'Acme drop', 'keep too', 'acme also'])
         ->and(Entry::find()->ownerId($owners[0]->id)->fieldId(Craft::$app->getFields()->getFieldByHandle($matrix)->id)->status(null)->ids())->toBe($idsBefore);
 });
+
+it('changes a Matrix field shared across sites only once', function() {
+    [$section, $matrix, $type, , $owners] = seedMatrix([['a', 'b']]);
+
+    // Matrix fields propagate to all sites by default, so all sites share one list of nested entries.
+    $changeset = ContentOps::getInstance()->getPreviewer()->preview(
+        new Selection(['criteria' => ['section' => $section], 'siteIds' => Craft::$app->getSites()->getAllSiteIds()]),
+        [new Operation(['target' => $matrix, 'operator' => 'matrix', 'operation' => 'add', 'options' => ['type' => $type]])],
+    );
+
+    expect($changeset->getCount('pending'))->toBe(1);
+})->skip(fn() => count(Craft::$app->getSites()->getAllSiteIds()) < 2, 'Needs a multi-site install');

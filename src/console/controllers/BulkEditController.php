@@ -97,6 +97,11 @@ class BulkEditController extends Controller
     public bool $caseSensitive = true;
 
     /**
+     * @var string|null Extra operator options as JSON, e.g. `{"type":"quoteBlock","contains":"Acme"}` for the matrix operator.
+     */
+    public ?string $options = null;
+
+    /**
      * @var bool Apply the changeset right after previewing.
      */
     public bool $apply = false;
@@ -122,7 +127,7 @@ class BulkEditController extends Controller
         return array_merge(parent::options($actionID), [
             'section', 'type', 'ids', 'status', 'site', 'limit',
             'field', 'operator', 'op', 'value', 'find', 'replace', 'caseSensitive',
-            'apply', 'queue', 'as',
+            'options', 'apply', 'queue', 'as',
         ]);
     }
 
@@ -155,12 +160,12 @@ class BulkEditController extends Controller
                 'target' => $this->field,
                 'operator' => $this->operator ?: $this->_guessOperator(),
                 'operation' => $this->op,
-                'options' => array_filter([
+                'options' => array_merge(array_filter([
                     'value' => $this->value,
                     'find' => $this->find,
                     'replace' => $this->replace,
                     'caseSensitive' => $this->op === 'replace' ? $this->caseSensitive : null,
-                ], fn($value) => $value !== null),
+                ], fn($value) => $value !== null), $this->_jsonOptions()),
             ]);
 
             $this->stdout('Previewing … ');
@@ -250,6 +255,25 @@ class BulkEditController extends Controller
         }
 
         return $operators[0]::handle();
+    }
+
+    /**
+     * @return array<string, mixed>
+     * @throws InvalidArgumentException if --options isn't a JSON object
+     */
+    private function _jsonOptions(): array
+    {
+        if ($this->options === null || $this->options === '') {
+            return [];
+        }
+
+        $options = json_decode($this->options, true);
+
+        if (!is_array($options)) {
+            throw new InvalidArgumentException('--options must be a JSON object.');
+        }
+
+        return $options;
     }
 
     /**

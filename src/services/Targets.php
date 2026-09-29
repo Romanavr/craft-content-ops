@@ -4,10 +4,12 @@ namespace romanavr\contentops\services;
 
 use Craft;
 use craft\base\ElementInterface;
+use craft\base\Field;
 use craft\db\Query;
 use craft\db\Table as CraftTable;
 use craft\elements\db\EntryQuery;
 use craft\elements\Entry;
+use craft\enums\PropagationMethod;
 use craft\fields\Matrix;
 use craft\helpers\DateTimeHelper;
 use craft\helpers\Db;
@@ -292,6 +294,10 @@ class Targets extends Component
      */
     public function translationKey(ElementInterface $element, Target $target): string
     {
+        if ($target->field instanceof Matrix) {
+            return $this->_matrixTranslationKey($element, $target->field);
+        }
+
         if ($target->field !== null) {
             return $target->field->getTranslationKey($element);
         }
@@ -312,6 +318,27 @@ class Targets extends Component
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Matrix fields share their list of nested entries between sites according to their *propagation* method
+     * (not the translation method), so a structural change saved in one site already reaches the others.
+     *
+     * @param ElementInterface $element
+     * @param Matrix $field
+     * @return string
+     */
+    private function _matrixTranslationKey(ElementInterface $element, Matrix $field): string
+    {
+        $method = match ($field->propagationMethod) {
+            PropagationMethod::All => Field::TRANSLATION_METHOD_NONE,
+            PropagationMethod::None => Field::TRANSLATION_METHOD_SITE,
+            PropagationMethod::SiteGroup => Field::TRANSLATION_METHOD_SITE_GROUP,
+            PropagationMethod::Language => Field::TRANSLATION_METHOD_LANGUAGE,
+            PropagationMethod::Custom => Field::TRANSLATION_METHOD_CUSTOM,
+        };
+
+        return ElementHelper::translationKey($element, $method, $field->propagationKeyFormat);
+    }
 
     /**
      * Reads a Matrix field as an ordered list of its nested entries (order matters, so it's a list, not an ID map).
