@@ -3,6 +3,7 @@
 namespace romanavr\contentops\operators;
 
 use craft\base\ElementInterface;
+use craft\elements\User;
 use craft\fields\BaseRelationField;
 use romanavr\contentops\models\Operation;
 use romanavr\contentops\models\Target;
@@ -49,6 +50,31 @@ class RelationOperator extends BaseOperator
             'remove' => 'Remove',
             'clear' => 'Clear',
         ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getInputs(string $operation, Target $target): array
+    {
+        if ($operation === 'clear') {
+            return [];
+        }
+
+        if ($target->attribute === 'authorIds') {
+            return [['name' => 'ids', 'type' => 'elements', 'label' => 'Authors', 'elementType' => User::class, 'sources' => null]];
+        }
+
+        /** @var BaseRelationField $field */
+        $field = $target->field;
+
+        return [[
+            'name' => 'ids',
+            'type' => 'elements',
+            'label' => $field::elementType()::pluralDisplayName(),
+            'elementType' => $field::elementType(),
+            'sources' => $field->sources === '*' ? null : (array)$field->sources,
+        ]];
     }
 
     /**

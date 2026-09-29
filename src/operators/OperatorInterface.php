@@ -44,6 +44,28 @@ interface OperatorInterface
     public function getOperations(): array;
 
     /**
+     * Returns the operations available for a specific target, as `handle => label`
+     * (e.g. single-option fields can't add/remove options).
+     *
+     * @param Target $target
+     * @return array<string, string>
+     */
+    public function getOperationsForTarget(Target $target): array;
+
+    /**
+     * Describes the inputs an operation needs, so UIs can render them generically.
+     *
+     * Each input is an array with `name` (the option key), `type` (`text`, `textarea`, `number`, `datetime`,
+     * `select`, `checkboxes`, `lightswitch`, `elements`), `label`, and type-specific keys
+     * (`options` for select/checkboxes, `elementType`/`sources`/`limit` for elements).
+     *
+     * @param string $operation
+     * @param Target $target
+     * @return array<int, array<string, mixed>>
+     */
+    public function getInputs(string $operation, Target $target): array;
+
+    /**
      * Returns whether the operator can edit the given target.
      *
      * @param Target $target

@@ -2,13 +2,18 @@
 
 namespace romanavr\contentops\services;
 
+use Craft;
 use craft\base\ElementInterface;
+use craft\db\Query;
+use craft\db\Table as CraftTable;
 use craft\elements\Entry;
 use craft\helpers\DateTimeHelper;
 use craft\helpers\Db;
 use craft\helpers\ElementHelper;
 use DateTime;
+use romanavr\contentops\ContentOps;
 use romanavr\contentops\models\Target;
+use romanavr\contentops\operators\OperatorInterface;
 use yii\base\Component;
 
 /**
@@ -40,8 +45,65 @@ class Targets extends Component
      */
     public const GLOBAL_ATTRIBUTES = ['enabled', 'postDate', 'expiryDate', 'authorIds'];
 
+    /**
+     * @var array<string, string> Attribute labels.
+     */
+    public const ATTRIBUTE_LABELS = [
+        'title' => 'Title',
+        'slug' => 'Slug',
+        'enabled' => 'Enabled',
+        'enabledForSite' => 'Enabled for site',
+        'postDate' => 'Post Date',
+        'expiryDate' => 'Expiry Date',
+        'authorIds' => 'Authors',
+    ];
+
     // Public Methods
     // =========================================================================
+
+    /**
+     * Describes what can be edited on a set of elements: every field on their layouts (with how many of the
+     * elements have it) and the native attributes, each with its operator, operations and inputs.
+     *
+     * @param class-string<ElementInterface> $elementType
+     * @param int[] $elementIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function describeTargets(string $elementType, array $elementIds): array
+    {
+        $total = count($elementIds);
+        $targets = [];
+
+        foreach ($this->_attributesFor($elementType) as $attribute) {
+            $targets[] = $this->_describe(new Target(['handle' => $attribute, 'attribute' => $attribute]), self::ATTRIBUTE_LABELS[$attribute], 'Attributes', $total, $total);
+        }
+
+        $layoutCounts = $total === 0 ? [] : (new Query())
+            ->select(['fieldLayoutId', 'count' => 'COUNT(*)'])
+            ->from(CraftTable::ELEMENTS)
+            ->where(['id' => $elementIds])
+            ->andWhere(['not', ['fieldLayoutId' => null]])
+            ->groupBy(['fieldLayoutId'])
+            ->pairs();
+
+        $fields = [];
+        $fieldsService = Craft::$app->getFields();
+
+        foreach ($layoutCounts as $layoutId => $count) {
+            foreach ($fieldsService->getLayoutById((int)$layoutId)?->getCustomFields() ?? [] as $field) {
+                $fields[$field->handle] ??= ['field' => $field, 'count' => 0];
+                $fields[$field->handle]['count'] += (int)$count;
+            }
+        }
+
+        ksort($fields);
+
+        foreach ($fields as $handle => ['field' => $field, 'count' => $count]) {
+            $targets[] = $this->_describe(new Target(['handle' => $handle, 'field' => $field]), $field->name, 'Fields', $count, $total);
+        }
+
+        return array_values(array_filter($targets));
+    }
 
     /**
      * Returns whether a handle names a native attribute (on at least some element types).
@@ -154,6 +216,60 @@ class Targets extends Component
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * @param class-string<ElementInterface> $elementType
+     * @return string[]
+     */
+    private function _attributesFor(string $elementType): array
+    {
+        $attributes = $elementType::hasTitles() ? self::ATTRIBUTES : array_diff(self::ATTRIBUTES, ['title']);
+
+        if ($elementType === Entry::class || is_subclass_of($elementType, Entry::class)) {
+            $attributes = [...$attributes, ...self::ENTRY_ATTRIBUTES];
+        }
+
+        return array_values($attributes);
+    }
+
+    /**
+     * @param Target $target
+     * @param string $label
+     * @param string $group
+     * @param int $count
+     * @param int $total
+     * @return array<string, mixed>|null `null` if no operator supports the target
+     */
+    private function _describe(Target $target, string $label, string $group, int $count, int $total): ?array
+    {
+        /** @var OperatorInterface|null $operator */
+        $operator = ContentOps::getInstance()->getOperators()->getOperatorsForTarget($target)[0] ?? null;
+
+        if ($operator === null) {
+            return null;
+        }
+
+        $operations = [];
+
+        foreach ($operator->getOperationsForTarget($target) as $handle => $operationLabel) {
+            $operations[] = [
+                'handle' => $handle,
+                'label' => $operationLabel,
+                'inputs' => $operator->getInputs($handle, $target),
+            ];
+        }
+
+        return [
+            'handle' => $target->handle,
+            'label' => $label,
+            'group' => $group,
+            'type' => $target->field ? $target->field::displayName() : null,
+            'count' => $count,
+            'total' => $total,
+            'operator' => $operator::handle(),
+            'operations' => $operations,
+        ];
+    }
 
     /**
      * @param ElementInterface $element

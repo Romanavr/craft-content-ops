@@ -5,6 +5,7 @@ namespace romanavr\contentops\operators;
 use romanavr\contentops\errors\ConflictException;
 use romanavr\contentops\helpers\Values;
 use romanavr\contentops\models\Operation;
+use romanavr\contentops\models\Target;
 use yii\base\InvalidArgumentException;
 
 /**
@@ -31,6 +32,17 @@ abstract class BaseOperator implements OperatorInterface
                 implode(', ', array_keys($this->getOperations())),
             ));
         }
+    }
+
+    /**
+     * Returns the operations available for a specific target (defaults to all of them).
+     *
+     * @param Target $target
+     * @return array<string, string>
+     */
+    public function getOperationsForTarget(Target $target): array
+    {
+        return $this->getOperations();
     }
 
     /**

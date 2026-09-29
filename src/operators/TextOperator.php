@@ -65,6 +65,25 @@ class TextOperator extends BaseOperator
     /**
      * @inheritdoc
      */
+    public function getInputs(string $operation, Target $target): array
+    {
+        $valueType = $target->field instanceof \craft\ckeditor\Field ? 'textarea' : 'text';
+
+        return match ($operation) {
+            'set', 'prepend', 'append' => [['name' => 'value', 'type' => $valueType, 'label' => 'Value']],
+            'replace' => [
+                ['name' => 'find', 'type' => 'text', 'label' => 'Find'],
+                ['name' => 'replace', 'type' => 'text', 'label' => 'Replace with'],
+                ['name' => 'caseSensitive', 'type' => 'lightswitch', 'label' => 'Case-sensitive', 'default' => true],
+            ],
+            'pattern' => [['name' => 'pattern', 'type' => 'text', 'label' => 'Pattern', 'placeholder' => $target->attribute === 'slug' ? '{title}' : '{title} – {section.name}']],
+            default => [],
+        };
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function supports(Target $target): bool
     {
         if ($target->attribute !== null) {

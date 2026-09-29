@@ -53,6 +53,18 @@ class NumberOperator extends BaseOperator
     /**
      * @inheritdoc
      */
+    public function getInputs(string $operation, Target $target): array
+    {
+        return match ($operation) {
+            'clear' => [],
+            'increasePercent', 'decreasePercent' => [['name' => 'value', 'type' => 'number', 'label' => 'Percent']],
+            default => [['name' => 'value', 'type' => 'number', 'label' => 'Value']],
+        };
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function supports(Target $target): bool
     {
         return $target->field instanceof Number;

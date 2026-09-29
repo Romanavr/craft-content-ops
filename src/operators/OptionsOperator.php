@@ -67,6 +67,44 @@ class OptionsOperator extends BaseOperator
     /**
      * @inheritdoc
      */
+    public function getInputs(string $operation, Target $target): array
+    {
+        if (!$target->field instanceof BaseOptionsField || $operation === 'clear') {
+            return [];
+        }
+
+        $options = array_values(array_filter(array_map(
+            fn(array $option) => isset($option['value']) ? ['label' => $option['label'], 'value' => (string)$option['value']] : null,
+            $target->field->options,
+        )));
+
+        if ($operation === 'set' && !self::isMulti($target->field)) {
+            return [['name' => 'value', 'type' => 'select', 'label' => 'Option', 'options' => $options]];
+        }
+
+        return [['name' => 'values', 'type' => 'checkboxes', 'label' => 'Options', 'options' => $options]];
+    }
+
+    /**
+     * Only multi-option fields support adding and removing options.
+     *
+     * @param Target $target
+     * @return array<string, string>
+     */
+    public function getOperationsForTarget(Target $target): array
+    {
+        $operations = $this->getOperations();
+
+        if ($target->field instanceof BaseOptionsField && !self::isMulti($target->field)) {
+            unset($operations['add'], $operations['remove']);
+        }
+
+        return $operations;
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function supports(Target $target): bool
     {
         return $target->field instanceof BaseOptionsField;

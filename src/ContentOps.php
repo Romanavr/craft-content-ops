@@ -3,8 +3,14 @@
 namespace romanavr\contentops;
 
 use Craft;
+use craft\base\Element;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\elements\Entry;
+use craft\events\RegisterElementActionsEvent;
+use craft\events\RegisterUserPermissionsEvent;
+use craft\services\UserPermissions;
+use romanavr\contentops\elements\actions\BulkEdit;
 use romanavr\contentops\models\Settings;
 use romanavr\contentops\services\Applier;
 use romanavr\contentops\services\Changesets;
@@ -12,6 +18,7 @@ use romanavr\contentops\services\Operators;
 use romanavr\contentops\services\Previewer;
 use romanavr\contentops\services\Selections;
 use romanavr\contentops\services\Targets;
+use yii\base\Event;
 
 /**
  * Content Ops plugin
@@ -135,7 +142,22 @@ class ContentOps extends Plugin
 
     private function attachEventHandlers(): void
     {
-        // Register event handlers here ...
-        // (see https://craftcms.com/docs/5.x/extend/events.html to get started)
+        Event::on(UserPermissions::class, UserPermissions::EVENT_REGISTER_PERMISSIONS, function(RegisterUserPermissionsEvent $event) {
+            $event->permissions[] = [
+                'heading' => Craft::t('content-ops', 'Content Ops'),
+                'permissions' => [
+                    'contentOps:bulkEdit' => ['label' => Craft::t('content-ops', 'Bulk edit elements')],
+                    'contentOps:findReplace' => ['label' => Craft::t('content-ops', 'Find and replace')],
+                    'contentOps:undo' => ['label' => Craft::t('content-ops', 'Undo changesets')],
+                    'contentOps:viewHistory' => ['label' => Craft::t('content-ops', 'View changeset history')],
+                ],
+            ];
+        });
+
+        Event::on(Entry::class, Element::EVENT_REGISTER_ACTIONS, function(RegisterElementActionsEvent $event) {
+            if (Craft::$app->getUser()->checkPermission('contentOps:bulkEdit')) {
+                $event->actions[] = BulkEdit::class;
+            }
+        });
     }
 }

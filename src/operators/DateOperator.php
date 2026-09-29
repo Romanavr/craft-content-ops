@@ -57,6 +57,18 @@ class DateOperator extends BaseOperator
     /**
      * @inheritdoc
      */
+    public function getInputs(string $operation, Target $target): array
+    {
+        return match ($operation) {
+            'set' => [['name' => 'value', 'type' => 'datetime', 'label' => 'Date']],
+            'shift' => [['name' => 'days', 'type' => 'number', 'label' => 'Days (negative to move back)']],
+            default => [],
+        };
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function supports(Target $target): bool
     {
         return $target->field instanceof Date || in_array($target->attribute, ['postDate', 'expiryDate'], true);

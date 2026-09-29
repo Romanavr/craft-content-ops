@@ -50,6 +50,14 @@ class LightswitchOperator extends BaseOperator
     /**
      * @inheritdoc
      */
+    public function getInputs(string $operation, Target $target): array
+    {
+        return [];
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function supports(Target $target): bool
     {
         return $target->field instanceof Lightswitch || in_array($target->attribute, ['enabled', 'enabledForSite'], true);

@@ -1,0 +1,47 @@
+{# @var changeset \romanavr\contentops\models\Changeset #}
+{% set pending = changeset.getCount('pending') %}
+{% set skipped = changeset.getCount('skipped') %}
+{% set failed = changeset.getCount('failed') %}
+
+<div class="co-preview">
+  <p class="co-preview-summary">
+    <strong>{{ '{num, plural, =1{# change} other{# changes}} will be made'|t('content-ops', {num: pending}) }}</strong>
+    {%- if changeset.getCount('unchanged') %} · {{ '{num, number} unchanged'|t('content-ops', {num: changeset.getCount('unchanged')}) }}{% endif %}
+    {%- if skipped %} · <span class="warning">{{ '{num, number} skipped'|t('content-ops', {num: skipped}) }}</span>{% endif %}
+    {%- if failed %} · <span class="error">{{ '{num, number} can’t be changed'|t('content-ops', {num: failed}) }}</span>{% endif %}
+  </p>
+
+  {% if rows %}
+    <div class="tableview co-preview-table">
+      <table class="data fullwidth">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Element'|t('app') }}</th>
+            {% if craft.app.isMultiSite %}<th scope="col">{{ 'Site'|t('app') }}</th>{% endif %}
+            <th scope="col">{{ 'Field'|t('app') }}</th>
+            <th scope="col">{{ 'Before'|t('content-ops') }}</th>
+            <th scope="col">{{ 'After'|t('content-ops') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr class="co-status-{{ row.change.status }}">
+              <td>{{ row.elementHtml|raw }}</td>
+              {% if craft.app.isMultiSite %}<td>{{ row.site }}</td>{% endif %}
+              <td>{{ row.target }}</td>
+              {% if row.change.status == 'pending' %}
+                <td class="co-diff co-before">{{ row.before|raw }}</td>
+                <td class="co-diff co-after">{{ row.after|raw }}</td>
+              {% else %}
+                <td colspan="2" class="{{ row.change.status == 'failed' ? 'error' : 'light' }}">{{ row.change.error }}</td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if rows|length >= limit %}
+      <p class="light">{{ 'Showing the first {num, number} rows.'|t('content-ops', {num: limit}) }}</p>
+    {% endif %}
+  {% endif %}
+</div>
