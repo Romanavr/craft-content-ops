@@ -66,8 +66,7 @@ it('undoes from the history page', function() {
 it('hides other users’ changesets without the view history permission', function() {
     $owner = UserFactory::factory()->create();
     $changeset = appliedChangeset($owner);
-    $other = UserFactory::factory()->create();
-    Craft::$app->getUserPermissions()->saveUserPermissions($other->id, ['accesscp', 'contentops:bulkedit', 'contentops:undo']);
+    $other = userWithPermissions(['contentops:bulkedit', 'contentops:undo']);
 
     $this->withExceptionHandling()
         ->actingAs($other)

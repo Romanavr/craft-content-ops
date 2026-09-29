@@ -8,13 +8,6 @@ use romanavr\contentops\ContentOps;
 use romanavr\contentops\models\Operation;
 use romanavr\contentops\models\Selection;
 
-function userWithPermissions(array $permissions): \craft\elements\User
-{
-    $user = UserFactory::factory()->create();
-    Craft::$app->getUserPermissions()->saveUserPermissions($user->id, ['accesscp', ...$permissions]);
-
-    return $user;
-}
 
 function targetsRequest(string $sectionUid, array $elementIds): array
 {

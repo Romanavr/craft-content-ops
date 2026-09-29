@@ -108,6 +108,11 @@ class ContentTools
     {
         $siteModel = $this->_resolveSite($site);
 
+        // Element IDs are 32-bit; out-of-range input would be a database error on Postgres.
+        if ($id < 1 || $id > 2147483647) {
+            throw new ToolCallException("Entry $id doesn't exist.");
+        }
+
         $entry = Entry::find()
             ->id($id)
             ->siteId($siteModel->id)

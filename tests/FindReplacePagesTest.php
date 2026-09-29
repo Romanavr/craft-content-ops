@@ -43,8 +43,7 @@ it('lists matches, excludes one and applies the rest', function() {
 });
 
 it('requires the find and replace permission', function() {
-    $user = \markhuot\craftpest\factories\User::factory()->create();
-    Craft::$app->getUserPermissions()->saveUserPermissions($user->id, ['accesscp', 'contentops:bulkedit']);
+    $user = userWithPermissions(['contentops:bulkedit']);
 
     $this->withExceptionHandling()
         ->actingAs($user)
