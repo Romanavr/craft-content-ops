@@ -6,7 +6,7 @@
 
 {% block content %}
   {% if changesets is empty %}
-    <p class="zilch">{{ 'No changesets yet. Select entries in an entry index and choose “Bulk edit…” from the actions menu.'|t('content-ops') }}</p>
+    <p class="zilch">{{ 'No changesets yet. Use the “Bulk edit” button below any entry list, or Find & Replace.'|t('content-ops') }}</p>
   {% else %}
     <div class="tableview">
       <table class="data fullwidth co-history">

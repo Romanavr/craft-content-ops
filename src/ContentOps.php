@@ -155,6 +155,7 @@ class ContentOps extends Plugin
         $item['label'] = Craft::t('content-ops', 'Content Ops');
         $item['subnav'] = [
             'history' => ['label' => Craft::t('content-ops', 'History'), 'url' => 'content-ops/history'],
+            'guide' => ['label' => Craft::t('content-ops', 'Guide'), 'url' => 'content-ops/guide'],
         ];
 
         if (Craft::$app->getUser()->checkPermission('contentOps:findReplace')) {
@@ -217,6 +218,7 @@ class ContentOps extends Plugin
             $event->rules['content-ops'] = 'content-ops/history/index';
             $event->rules['content-ops/history'] = 'content-ops/history/index';
             $event->rules['content-ops/history/<changesetId:\\d+>'] = 'content-ops/history/view';
+            $event->rules['content-ops/guide'] = ['template' => 'content-ops/guide/_index'];
             $event->rules['content-ops/find-replace'] = 'content-ops/find-replace/index';
             $event->rules['content-ops/find-replace/<changesetId:\\d+>'] = 'content-ops/find-replace/results';
         });

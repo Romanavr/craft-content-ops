@@ -89,6 +89,10 @@ class FindReplace extends Component
 
         $plugin->getChangesets()->refreshCounts($changeset->id, ['matches' => $this->countMatches($changeset)]);
 
+        if ($changesetId !== null) {
+            $plugin->getChangesets()->setStatus($changeset->id, ChangesetStatus::Previewed);
+        }
+
         return $plugin->getChangesets()->getChangesetById($changeset->id);
     }
 

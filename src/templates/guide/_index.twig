@@ -1,0 +1,96 @@
+{% extends '_layouts/cp.twig' %}
+
+{% set title = 'Content Ops Guide'|t('content-ops') %}
+{% set selectedSubnavItem = 'guide' %}
+
+{% block content %}
+<div class="readable co-guide">
+
+  <p class="co-lead">Content Ops changes many entries at once, safely. Every change follows the same four steps:</p>
+  <ol class="co-steps">
+    <li><strong>Select</strong> what to change: entries in an index, or everything a search finds.</li>
+    <li><strong>Preview</strong> every before → after value. Nothing is saved yet.</li>
+    <li><strong>Apply</strong> in the background, as a queue job.</li>
+    <li><strong>Undo</strong> any time from the History.</li>
+  </ol>
+  <p>Each run is saved as a <em>changeset</em>: a record of every old and new value, per entry, site and field.</p>
+
+  <h2 id="bulk-edit">Bulk edit</h2>
+  <ol>
+    <li>Go to <strong>Entries</strong> and pick a section. Optionally search or filter.</li>
+    <li>Either click <strong>Bulk edit</strong> in the footer, or select entries and choose <strong>Bulk edit…</strong> from the actions menu (⚙).</li>
+    <li>Choose the scope: <em>the selected entries</em> or <em>all entries matching the current view</em>. The second covers every page, your search and your filters.</li>
+    <li>Choose the <strong>sites</strong> to change.</li>
+    <li>Pick a field, an operation and a value. Add more changes with <strong>Add another change</strong>. Fields that only some entries have show <em>applies to N of M</em>.</li>
+    <li><strong>Preview changes</strong>, check the table, then <strong>Apply</strong>. The entry list refreshes when the job is done.</li>
+  </ol>
+
+  <table class="data fullwidth">
+    <thead><tr><th>Field type</th><th>Operations</th></tr></thead>
+    <tbody>
+      <tr><td>Title, Plain Text, CKEditor</td><td>Set, clear, prepend, append, find and replace, set from a pattern (e.g. <code>{title} – {section.name}</code>)</td></tr>
+      <tr><td>Slug</td><td>All of the above; a pattern like <code>{title}</code> is turned into a valid slug</td></tr>
+      <tr><td>Number</td><td>Set, clear, increase/decrease by a value or a percentage (empty values stay empty)</td></tr>
+      <tr><td>Lightswitch, Enabled, Enabled for site</td><td>On, off, toggle</td></tr>
+      <tr><td>Dropdown, Radio buttons</td><td>Set, clear</td></tr>
+      <tr><td>Checkboxes, Multi-select</td><td>Set, add options, remove options, clear</td></tr>
+      <tr><td>Date, Post Date, Expiry Date</td><td>Set, clear, shift by ± days (the local time of day is kept across daylight-saving changes)</td></tr>
+      <tr><td>Entries, Categories, Assets, Tags, Users, Authors</td><td>Replace with, add, remove, clear</td></tr>
+      <tr><td>Matrix</td><td>Add a nested entry (with its text fields), remove nested entries of a type (optionally only those containing some text)</td></tr>
+      <tr><td>Fields inside Matrix (<em>Matrix › Type › Field</em>)</td><td>Everything above, applied to each nested entry of that type</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="find-replace">Find &amp; Replace</h2>
+  <p>Go to <strong>Content Ops → Find &amp; Replace</strong>. It searches titles, Plain Text and CKEditor fields, and optionally the same fields inside Matrix nested entries, across the sections and sites you choose.</p>
+  <ul>
+    <li><strong>Case-sensitive</strong> and <strong>whole words only</strong> narrow the search.</li>
+    <li><strong>Regular expression</strong> lets you use patterns like <code>(\d{4})-(\d{2})</code>, with <code>$1</code>, <code>$2</code> in the replacement. Patterns that would take too long are stopped with an error instead of hanging.</li>
+    <li><strong>In CKEditor fields only visible text is searched.</strong> HTML tags, reference tags (<code>{entry:12:url}</code>) and embedded entries are never changed. Tick <em>Also replace inside links and image URLs</em> to change <code>href</code> and <code>src</code> values too, e.g. for a domain move.</li>
+    <li>The search runs in the background. You then get a list of every match in context with a checkbox; untick the ones to keep, then <strong>Apply replacements</strong>.</li>
+  </ul>
+
+  <h2 id="history">History &amp; undo</h2>
+  <p><strong>Content Ops → History</strong> lists every changeset: what it changed, who ran it, when, and the result. Open one to see each change and filter by status.</p>
+  <ul>
+    <li><strong>Undo</strong> puts back the original values.</li>
+    <li>If someone edited a value <em>after</em> the changeset ran, undo leaves it alone and marks it <em>Edited since</em>. <strong>Force undo</strong> overwrites those edits too.</li>
+    <li>Relations and Matrix undo only what the changeset did. Relations it added are removed, and nested entries it removed come back with their original IDs and positions. Anything else people changed is kept.</li>
+    <li>If a value changed between your preview and applying, that change is skipped as a <em>Conflict</em>, so you never overwrite something you didn't see.</li>
+    <li>Saves also create normal entry revisions noted <em>Content Ops changeset #N</em> (see Settings).</li>
+    <li>Changesets older than the retention period (Settings, default 90 days) are deleted. Previews that were never applied are deleted after a day.</li>
+  </ul>
+
+  <h2 id="multi-site">Multi-site</h2>
+  <p>Values that are shared between sites (by the field’s translation method, or a Matrix field’s propagation method) are changed <strong>once</strong>, not once per site. For example, appending “!” to an untranslated field never results in “!!”. Values translated per site are changed in each chosen site.</p>
+
+  <h2 id="permissions">Permissions</h2>
+  <table class="data fullwidth">
+    <thead><tr><th>Permission</th><th>Allows</th></tr></thead>
+    <tbody>
+      <tr><td>Bulk edit elements</td><td>The Bulk edit button and action. Entries the user can’t save are skipped and reported.</td></tr>
+      <tr><td>Find and replace</td><td>The Find &amp; Replace page</td></tr>
+      <tr><td>Undo changesets</td><td>Undo and force undo (own changesets, or all with the next permission)</td></tr>
+      <tr><td>View changeset history</td><td>Everyone’s changesets; without it, users see only their own</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="console">Console</h2>
+<pre><code>php craft content-ops/bulk-edit --section=news --field=title --op=append --value=" (2026)" [--site=*] [--apply]
+php craft content-ops/find-replace --find="http://old.test" --replace="https://new.test" --links [--apply]
+php craft content-ops/changesets                 # list
+php craft content-ops/changesets/view 12         # details
+php craft content-ops/changesets/apply 12
+php craft content-ops/changesets/undo 12 [--force]</code></pre>
+
+  <h2 id="ai">AI access (MCP)</h2>
+  <p>AI tools such as Claude Code, Claude Desktop and Cursor can read your content model and content through the built-in MCP server, <code>php craft content-ops/mcp</code>. It offers <code>get_project_schema</code>, <code>search_content</code> and <code>read_entry</code>. It is read-only for now; AI-proposed changesets that you approve in the CP (and can undo) are planned.</p>
+</div>
+{% endblock %}
+
+{% css %}
+  .co-guide h2 { margin-top: 32px; }
+  .co-guide .co-lead { font-size: 1.1em; }
+  .co-guide table { margin: 12px 0 8px; }
+  .co-guide pre { background: var(--gray-050, #f3f7fc); padding: 12px; border-radius: 6px; overflow-x: auto; }
+{% endcss %}

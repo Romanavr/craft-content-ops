@@ -146,3 +146,17 @@ it('reports a failed background preview on the changeset', function() {
     expect($changeset->status->value)->toBe('failed')
         ->and($changeset->error)->toContain('no text fields');
 });
+
+it('keeps the search scope and stays previewing until the job finishes', function() {
+    $s = seedFindReplace();
+    $plugin = ContentOps::getInstance();
+    $id = $plugin->getFindReplace()->queuePreview(new MatchSpec(['find' => 'Acme', 'replace' => 'Globex']), new FindReplaceScope(['sections' => [$s['section']->handle]]));
+    $plugin->getChangesets()->setOptions($id, ['scope' => ['sections' => [$s['section']->handle]]]);
+
+    Craft::$app->getQueue()->run();
+    $changeset = $plugin->getChangesets()->getChangesetById($id);
+
+    expect($changeset->status->value)->toBe('previewed')
+        ->and($changeset->options['scope']['sections'])->toBe([$s['section']->handle])
+        ->and($changeset->getCount('matches'))->toBeGreaterThan(0);
+});

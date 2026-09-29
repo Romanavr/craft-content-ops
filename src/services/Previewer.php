@@ -80,11 +80,15 @@ class Previewer extends Component
         $record = $changesetId !== null ? ChangesetRecord::findOne($changesetId) : null;
         $record ??= new ChangesetRecord();
         $record->type = $type->value;
-        $record->status = ChangesetStatus::Previewed->value;
+        // A background preview stays “previewing” until every row is written, so pollers never see a half-built changeset.
+        $record->status = ($changesetId !== null ? ChangesetStatus::Previewing : ChangesetStatus::Previewed)->value;
         $record->userId = $user?->id;
         $record->selection = Json::encode($selection->toArray());
         $record->operations = Json::encode(array_map(fn(Operation $operation) => $operation->toArray(), $operations));
-        $record->options = Json::encode(['createRevisions' => $plugin->getSettings()->createRevisions]);
+        $record->options = Json::encode(array_merge(
+            Json::decode($record->options ?? '{}') ?: [],
+            ['createRevisions' => $plugin->getSettings()->createRevisions],
+        ));
         $record->save(false);
 
         $opsByTarget = [];
@@ -136,6 +140,7 @@ class Previewer extends Component
 
         $this->_flushRows();
 
+        // With $changesetId the caller finishes the changeset (and marks it previewed) itself.
         $changesets = $plugin->getChangesets();
         $changesets->refreshCounts($record->id, [
             'total' => $total,
