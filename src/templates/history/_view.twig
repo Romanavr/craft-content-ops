@@ -49,14 +49,21 @@
     </dl>
 
     {% if not canUndo and not craft.app.plugins.getPlugin('content-ops').isPro() and changeset.status.value in ['applied', 'partiallyUndone'] %}
-      <p class="light">{{ 'Content Ops Lite can undo the most recent changeset. Undoing any changeset from the history is available in Content Ops Pro.'|t('content-ops') }}</p>
+      <p class="light">
+        {{ 'Content Ops Lite can undo the most recent changeset.'|t('content-ops') }}<br>
+        {{ 'Undoing any changeset from the history is available in Content Ops Pro.'|t('content-ops') }}
+      </p>
     {% endif %}
     {% if (changeset.options.source ?? null) == 'ai' and changeset.status.value == 'previewed' %}
-      <p class="notice with-icon">{{ 'An AI tool proposed this changeset. Nothing has been changed yet: review the changes below and apply them if they’re right.'|t('content-ops') }}</p>
+      <p class="notice with-icon">
+        {{ 'An AI tool proposed this changeset. Nothing has been changed yet.'|t('content-ops') }}<br>
+        {{ 'Review the changes below and apply them if they’re right.'|t('content-ops') }}
+      </p>
     {% endif %}
     {% if changeset.getCount('undoConflict') %}
       <p class="warning with-icon">
-        {{ '{num, plural, =1{One value was} other{# values were}} edited after this changeset ran, so undo left {num, plural, =1{it} other{them}} alone. “Force undo” overwrites those edits with the original values.'|t('content-ops', {num: changeset.getCount('undoConflict')}) }}
+        {{ '{num, plural, =1{One value was} other{# values were}} edited after this changeset ran, so undo left {num, plural, =1{it} other{them}} alone.'|t('content-ops', {num: changeset.getCount('undoConflict')}) }}<br>
+        {{ '“Force undo” replaces those edits with the original values.'|t('content-ops') }}
       </p>
     {% endif %}
     {% if changeset.getCount('withDrafts') and changeset.status.value == 'previewed' %}

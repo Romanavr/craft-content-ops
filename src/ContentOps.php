@@ -207,6 +207,20 @@ class ContentOps extends Plugin
                 + array_slice($item['subnav'], -1, 1, true);
         }
 
+        // Settings: always listed for admins; inactive where admin changes are disallowed (e.g. production).
+        if (Craft::$app->getUser()->getIsAdmin()) {
+            $item['subnav']['settings'] = Craft::$app->getConfig()->getGeneral()->allowAdminChanges
+                ? ['label' => Craft::t('app', 'Settings'), 'url' => 'settings/plugins/content-ops']
+                : [
+                    'label' => Craft::t('app', 'Settings'),
+                    'linkAttributes' => [
+                        'class' => ['co-nav-disabled'],
+                        'aria' => ['disabled' => 'true'],
+                        'title' => Craft::t('content-ops', 'Settings can only be changed in environments where admin changes are allowed.'),
+                    ],
+                ];
+        }
+
         if (Craft::$app->getUser()->checkPermission('contentOps:findReplace')) {
             $item['subnav'] = ['find-replace' => ['label' => Craft::t('content-ops', 'Find & Replace'), 'url' => 'content-ops/find-replace']] + $item['subnav'];
         }
@@ -250,6 +264,9 @@ class ContentOps extends Plugin
 
         Event::on(View::class, View::EVENT_BEFORE_RENDER_PAGE_TEMPLATE, function() {
             $user = Craft::$app->getUser();
+
+            // Inactive sidebar items (e.g. Settings when admin changes are disallowed).
+            Craft::$app->getView()->registerCss('.sidebar-action.co-nav-disabled { opacity: .45; cursor: not-allowed; }');
 
             if ($user->getIsGuest() || !$user->checkPermission('contentOps:bulkEdit')) {
                 return;

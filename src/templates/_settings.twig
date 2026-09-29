@@ -3,51 +3,72 @@
 
 {% import '_includes/forms.twig' as forms %}
 
+<h2>{{ 'Saving changes'|t('content-ops') }}</h2>
+
 {{ forms.lightswitchField({
     label: 'Create revisions'|t('content-ops'),
-    instructions: 'Whether each save creates an entry revision noted with the changeset ID. Slower, but a second safety net next to undo.'|t('content-ops'),
+    instructions: 'Keep a normal entry revision for every save, noted with the changeset number.<br>A second safety net next to undo, but it makes bulk changes slower.'|t('content-ops'),
     name: 'createRevisions',
     on: settings.createRevisions,
 }) }}
 
-{{ forms.textField({
-    label: 'Batch size'|t('content-ops'),
-    instructions: 'How many elements each background job batch processes.'|t('content-ops'),
-    name: 'batchSize',
-    type: 'number',
-    min: 1,
-    max: 1000,
-    value: settings.batchSize,
-    errors: settings.getErrors('batchSize'),
-}) }}
+<hr>
+
+<h2>{{ 'History'|t('content-ops') }}</h2>
 
 {{ forms.textField({
-    label: 'History retention (days)'|t('content-ops'),
+    label: 'Keep history for'|t('content-ops'),
     instructions: plugin.isPro()
-        ? 'Changesets older than this are deleted and can no longer be undone. Leave blank to keep them forever.'|t('content-ops')
-        : 'Content Ops Lite keeps 30 days of history. Setting the retention period is available in Content Ops Pro.'|t('content-ops'),
-    disabled: not plugin.isPro(),
+        ? 'Days. Older changesets are deleted and can’t be undone anymore.<br>Leave empty to keep them forever.'|t('content-ops')
+        : 'Content Ops Lite keeps 30 days of history.<br>Choosing the period is available in Content Ops Pro.'|t('content-ops'),
     name: 'historyRetentionDays',
     type: 'number',
+    size: 6,
     min: 1,
+    unit: 'days'|t('content-ops'),
     value: settings.historyRetentionDays,
+    disabled: not plugin.isPro(),
     errors: settings.getErrors('historyRetentionDays'),
 }) }}
 
+<hr>
+
+<h2>{{ 'AI access'|t('content-ops') }}</h2>
+
 {{ forms.textareaField({
-    label: 'AI context'|t('content-ops'),
-    instructions: 'Notes for AI tools connected over MCP: tone of voice, naming rules, sections they must not change… Shared with every AI session as `project://context`.'|t('content-ops'),
+    label: 'Notes for AI tools'|t('content-ops'),
+    instructions: 'Shared with every AI tool connected through Content Ops → AI Access.<br>Write one rule per line.'|t('content-ops'),
+    placeholder: "Write in a friendly, plain tone.\nProduct names are always capitalized.\nNever change entries in the Legal section.",
     name: 'aiContext',
     value: settings.aiContext,
-    rows: 6,
+    rows: 5,
 }) }}
 
 {{ forms.textField({
-    label: 'Max items per AI changeset'|t('content-ops'),
-    instructions: 'Proposals over MCP that would change more than this are refused.'|t('content-ops'),
+    label: 'Largest AI proposal'|t('content-ops'),
+    instructions: 'AI tools can’t propose changesets bigger than this.'|t('content-ops'),
     name: 'mcpMaxElements',
     type: 'number',
+    size: 6,
     min: 1,
+    unit: 'items'|t('content-ops'),
     value: settings.mcpMaxElements,
     errors: settings.getErrors('mcpMaxElements'),
+}) }}
+
+<hr>
+
+<h2>{{ 'Advanced'|t('content-ops') }}</h2>
+
+{{ forms.textField({
+    label: 'Batch size'|t('content-ops'),
+    instructions: 'How many entries each background job saves before it hands over to the next one.<br>Lower it if jobs run into memory or time limits.'|t('content-ops'),
+    name: 'batchSize',
+    type: 'number',
+    size: 6,
+    min: 1,
+    max: 1000,
+    unit: 'entries'|t('content-ops'),
+    value: settings.batchSize,
+    errors: settings.getErrors('batchSize'),
 }) }}

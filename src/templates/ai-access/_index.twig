@@ -6,7 +6,12 @@
 
 {% block content %}
   <div class="readable">
-    <p>{{ 'AI tools (Claude, Cursor, …) connect to Content Ops through MCP. Each token acts as the user who created it, with their permissions. In “Propose changes” mode, the AI can only prepare changesets; a person reviews and applies them under History.'|t('content-ops') }}</p>
+    <p>{{ 'Connect AI tools like Claude or Cursor to Content Ops through MCP.'|t('content-ops') }}</p>
+    <ul class="co-ai-notes">
+      <li>{{ 'Each token acts as the user who created it, with that user’s permissions.'|t('content-ops') }}</li>
+      <li>{{ 'In “Propose changes” mode, the AI only prepares changesets. A person reviews and applies them under History.'|t('content-ops') }}</li>
+      <li>{{ 'You can revoke a token at any time.'|t('content-ops') }}</li>
+    </ul>
 
     {% if newToken %}
       <div class="co-new-token">
@@ -68,4 +73,5 @@
   .co-new-token { border: 1px solid var(--hairline-color, #e3e5e8); border-radius: 6px; padding: 12px 16px; margin-bottom: 24px; background: var(--gray-050, #f3f7fc); }
   .co-token { display: block; font-size: 14px; padding: 8px; background: #fff; border-radius: 4px; word-break: break-all; user-select: all; }
   .co-token-form { margin-bottom: 24px; }
+  .co-ai-notes { list-style: disc; padding-left: 18px; margin-bottom: 24px; }
 {% endcss %}

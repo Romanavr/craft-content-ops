@@ -31,12 +31,19 @@
       <legend class="h6">{{ 'Options'|t('content-ops') }}</legend>
       {{ forms.checkbox({label: 'Case-sensitive'|t('content-ops'), name: 'caseSensitive', checked: spec.caseSensitive}) }}
       {{ forms.checkbox({label: 'Whole words only'|t('content-ops'), name: 'wholeWord', checked: spec.wholeWord}) }}
-      <div class="co-pro-option">{{ forms.checkbox({label: 'Regular expression'|t('content-ops'), name: 'regex', checked: isPro and spec.regex, disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}</div>
-      <div class="co-pro-option">{{ forms.checkbox({label: 'Also replace inside links and image URLs (href/src) — e.g. for domain moves'|t('content-ops'), name: 'links', checked: isPro and spec.html == 'textAndLinks', disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}</div>
-      <div class="co-pro-option">{{ forms.checkbox({label: 'Include nested entries (Matrix)'|t('content-ops'), name: 'includeNested', checked: isPro and scope.includeNested, disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}</div>
+      <div class="co-pro-option">
+        {{ forms.checkbox({label: 'Regular expression'|t('content-ops'), name: 'regex', checked: isPro and spec.regex, disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}
+      </div>
+      <div class="co-pro-option">
+        {{ forms.checkbox({label: 'Include links and image URLs'|t('content-ops'), name: 'links', checked: isPro and spec.html == 'textAndLinks', disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}
+        <div class="co-option-note">{{ 'Also changes href and src values, e.g. when moving to a new domain.'|t('content-ops') }}</div>
+      </div>
+      <div class="co-pro-option">
+        {{ forms.checkbox({label: 'Include nested entries (Matrix)'|t('content-ops'), name: 'includeNested', checked: isPro and scope.includeNested, disabled: not isPro}) }}{% if not isPro %}{{ co.proBadge() }}{% endif %}
+      </div>
     </fieldset>
     {% if not isPro %}
-      <p class="light">{{ 'Content Ops Pro adds regular expressions, link and image URL replacement, Matrix support and choosing individual matches.'|t('content-ops') }}</p>
+      <p class="light">{{ 'Content Ops Pro adds regular expressions, links and image URLs, Matrix support and choosing individual matches.'|t('content-ops') }}</p>
     {% endif %}
 
     {{ forms.checkboxSelectField({
@@ -59,7 +66,11 @@
       }) }}
     {% endif %}
 
-    <p class="light">{{ 'Searches titles, Plain Text and CKEditor fields. In CKEditor, only visible text is searched unless you also include links; HTML tags and reference tags are never changed. Nothing is saved until you review the matches and apply them.'|t('content-ops') }}</p>
+    <ul class="co-fr-notes light">
+      <li>{{ 'Searches titles, Plain Text and CKEditor fields.'|t('content-ops') }}</li>
+      <li>{{ 'In CKEditor, only visible text changes. HTML tags and reference tags are never touched.'|t('content-ops') }}</li>
+      <li>{{ 'Nothing is saved until you’ve reviewed the matches and applied them.'|t('content-ops') }}</li>
+    </ul>
 
     <button type="submit" class="btn submit">{{ 'Find matches'|t('content-ops') }}</button>
   </form>
@@ -68,6 +79,8 @@
 {% css %}
   .co-fr-form { max-width: 720px; }
   .co-fr-options { border: 0; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 6px; }
-  .co-pro-option { display: flex; align-items: center; gap: 8px; }
+  .co-pro-option { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+  .co-option-note { flex-basis: 100%; padding-left: 26px; font-size: 12px; color: var(--light-text-color, #606d7b); }
+  .co-fr-notes { list-style: disc; padding-left: 18px; margin: 0 0 20px; }
   .co-pro-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px; border-radius: 8px; background: var(--blue-050, #e3f0fe); color: var(--blue-800, #1e4b8c); }
 {% endcss %}
