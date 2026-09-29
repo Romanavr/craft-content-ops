@@ -24,6 +24,7 @@ use romanavr\contentops\services\Operators;
 use romanavr\contentops\services\Previewer;
 use romanavr\contentops\services\Selections;
 use romanavr\contentops\services\Targets;
+use romanavr\contentops\services\Tokens;
 use romanavr\contentops\web\assets\bulkedit\BulkEditAsset;
 use yii\base\Event;
 
@@ -39,6 +40,7 @@ use yii\base\Event;
  * @property-read Previewer $previewer
  * @property-read Selections $selections
  * @property-read Targets $targets
+ * @property-read Tokens $tokens
  * @author Romanavr
  * @copyright Romanavr
  * @license https://craftcms.github.io/license/ Craft License
@@ -48,7 +50,7 @@ class ContentOps extends Plugin
     public const EDITION_LITE = 'lite';
     public const EDITION_PRO = 'pro';
 
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.1.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -94,6 +96,7 @@ class ContentOps extends Plugin
                 'previewer' => Previewer::class,
                 'selections' => Selections::class,
                 'targets' => Targets::class,
+                'tokens' => Tokens::class,
             ],
         ];
     }
@@ -193,11 +196,27 @@ class ContentOps extends Plugin
             'guide' => ['label' => Craft::t('content-ops', 'Guide'), 'url' => 'content-ops/guide'],
         ];
 
+        if (Craft::$app->getUser()->checkPermission('contentOps:mcp')) {
+            $item['subnav'] = array_slice($item['subnav'], 0, -1, true)
+                + ['ai-access' => ['label' => Craft::t('content-ops', 'AI Access'), 'url' => 'content-ops/ai-access']]
+                + array_slice($item['subnav'], -1, 1, true);
+        }
+
         if (Craft::$app->getUser()->checkPermission('contentOps:findReplace')) {
             $item['subnav'] = ['find-replace' => ['label' => Craft::t('content-ops', 'Find & Replace'), 'url' => 'content-ops/find-replace']] + $item['subnav'];
         }
 
         return $item;
+    }
+
+    /**
+     * Returns the MCP tokens service.
+     *
+     * @return Tokens
+     */
+    public function getTokens(): Tokens
+    {
+        return $this->get('tokens');
     }
 
     protected function createSettingsModel(): ?Model
@@ -245,6 +264,7 @@ class ContentOps extends Plugin
                     'contentOps:findReplace' => ['label' => Craft::t('content-ops', 'Find and replace')],
                     'contentOps:undo' => ['label' => Craft::t('content-ops', 'Undo changesets')],
                     'contentOps:viewHistory' => ['label' => Craft::t('content-ops', 'View changeset history')],
+                    'contentOps:mcp' => ['label' => Craft::t('content-ops', 'Use AI access (MCP tokens)')],
                 ],
             ];
         });
@@ -254,6 +274,7 @@ class ContentOps extends Plugin
             $event->rules['content-ops/history'] = 'content-ops/history/index';
             $event->rules['content-ops/history/<changesetId:\\d+>'] = 'content-ops/history/view';
             $event->rules['content-ops/guide'] = ['template' => 'content-ops/guide/_index'];
+            $event->rules['content-ops/ai-access'] = 'content-ops/ai-access/index';
             $event->rules['content-ops/find-replace'] = 'content-ops/find-replace/index';
             $event->rules['content-ops/find-replace/<changesetId:\\d+>'] = 'content-ops/find-replace/results';
         });

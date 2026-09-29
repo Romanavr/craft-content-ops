@@ -15,4 +15,5 @@ abstract class Table
 
     public const CHANGESETS = '{{%contentops_changesets}}';
     public const CHANGES = '{{%contentops_changes}}';
+    public const TOKENS = '{{%contentops_tokens}}';
 }

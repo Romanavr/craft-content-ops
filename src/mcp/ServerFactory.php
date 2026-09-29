@@ -4,6 +4,7 @@ namespace romanavr\contentops\mcp;
 
 use Mcp\Schema\ToolAnnotations;
 use Mcp\Server;
+use Mcp\Server\Session\SessionStoreInterface;
 use romanavr\contentops\ContentOps;
 
 /**
@@ -22,19 +23,21 @@ class ServerFactory
      * Creates a server with the tools the session's mode allows.
      *
      * @param McpContext|null $context Defaults to a propose-mode console session
+     * @param SessionStoreInterface|null $sessionStore For HTTP, where each request is a new PHP process
      * @return Server
      */
-    public static function create(?McpContext $context = null): Server
+    public static function create(?McpContext $context = null, ?SessionStoreInterface $sessionStore = null): Server
     {
         $context ??= new McpContext();
         $projectTools = new ProjectTools();
-        $contentTools = new ContentTools();
+        $contentTools = new ContentTools($context->user);
         $changesetTools = new ChangesetTools($context);
         $readOnly = new ToolAnnotations(readOnlyHint: true, destructiveHint: false, openWorldHint: false);
         $proposes = new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false);
         $writes = new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false);
 
         $builder = Server::builder()
+            ->setSession($sessionStore)
             ->setServerInfo('Content Ops', ContentOps::getInstance()->getVersion())
             ->setInstructions(self::instructions($context))
             ->addTool(

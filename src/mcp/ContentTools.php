@@ -30,6 +30,17 @@ class ContentTools
     // =========================================================================
 
     /**
+     * @param User|null $user When set (HTTP tokens), only entries this user can view are returned
+     */
+    public function __construct(
+        private readonly ?User $user = null,
+    ) {
+    }
+
+    // Tool Methods
+    // =========================================================================
+
+    /**
      * Searches entries. Returns a page of lightweight summaries plus the total match count.
      * Nested entries (Matrix blocks) are excluded unless `includeNested` is true.
      *
@@ -83,6 +94,11 @@ class ContentTools
         $results = [];
 
         foreach ($entryQuery->limit($limit)->offset(max(0, $offset))->all() as $entry) {
+            // Entries the token's user can't view are left out (totals are counted before this filter).
+            if ($this->user !== null && !Craft::$app->getElements()->canView($entry, $this->user)) {
+                continue;
+            }
+
             $results[] = $this->_summarize($entry);
         }
 
@@ -119,7 +135,7 @@ class ContentTools
             ->status(null)
             ->one();
 
-        if ($entry === null) {
+        if ($entry === null || ($this->user !== null && !Craft::$app->getElements()->canView($entry, $this->user))) {
             throw new ToolCallException("Entry $id doesn't exist in site \"$siteModel->handle\".");
         }
 

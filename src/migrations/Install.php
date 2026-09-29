@@ -25,6 +25,7 @@ class Install extends Migration
         $this->createTables();
         $this->createIndexes();
         $this->addForeignKeys();
+        (new m260930_000000_add_tokens())->createTokensTable($this);
 
         return true;
     }
@@ -34,6 +35,7 @@ class Install extends Migration
      */
     public function safeDown(): bool
     {
+        $this->dropTableIfExists(Table::TOKENS);
         $this->dropTableIfExists(Table::CHANGES);
         $this->dropTableIfExists(Table::CHANGESETS);
 

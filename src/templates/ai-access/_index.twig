@@ -1,0 +1,71 @@
+{% extends '_layouts/cp.twig' %}
+{% import '_includes/forms.twig' as forms %}
+
+{% set title = 'AI Access'|t('content-ops') %}
+{% set selectedSubnavItem = 'ai-access' %}
+
+{% block content %}
+  <div class="readable">
+    <p>{{ 'AI tools (Claude, Cursor, …) connect to Content Ops through MCP. Each token acts as the user who created it, with their permissions. In “Propose changes” mode, the AI can only prepare changesets; a person reviews and applies them under History.'|t('content-ops') }}</p>
+
+    {% if newToken %}
+      <div class="co-new-token">
+        <p><strong>{{ 'Your new token (copy it now — it won’t be shown again):'|t('content-ops') }}</strong></p>
+        <code class="co-token">{{ newToken }}</code>
+        <p class="light">{{ 'MCP client config:'|t('content-ops') }}</p>
+<pre><code>{
+  "mcpServers": {
+    "content-ops": {
+      "type": "http",
+      "url": "{{ endpoint }}",
+      "headers": { "Authorization": "Bearer {{ newToken }}" }
+    }
+  }
+}</code></pre>
+      </div>
+    {% endif %}
+
+    <h2>{{ 'Create a token'|t('content-ops') }}</h2>
+    <form method="post" accept-charset="UTF-8" class="co-token-form">
+      {{ csrfInput() }}
+      {{ actionInput('content-ops/ai-access/create') }}
+      {{ forms.textField({label: 'Name'|t('app'), instructions: 'E.g. “Claude Desktop – laptop”. Shown on every changeset the AI creates.'|t('content-ops'), name: 'name', required: true}) }}
+      {{ forms.selectField({label: 'What the AI may do'|t('content-ops'), name: 'mode', options: modes, value: 'propose'}) }}
+      <button type="submit" class="btn submit">{{ 'Create token'|t('content-ops') }}</button>
+    </form>
+
+    <h2>{{ 'Tokens'|t('content-ops') }}</h2>
+    {% if tokens is empty %}
+      <p class="zilch">{{ 'No tokens yet.'|t('content-ops') }}</p>
+    {% else %}
+      <table class="data fullwidth">
+        <thead><tr><th>{{ 'Name'|t('app') }}</th><th>{{ 'User'|t('app') }}</th><th>{{ 'Mode'|t('content-ops') }}</th><th>{{ 'Token'|t('content-ops') }}</th><th>{{ 'Last used'|t('content-ops') }}</th><th></th></tr></thead>
+        <tbody>
+          {% for token in tokens %}
+            <tr>
+              <td>{{ token.name }}</td>
+              <td>{{ users[token.userId].friendlyName ?? '—' }}</td>
+              <td>{{ modes[token.mode] ?? token.mode }}</td>
+              <td><code>{{ token.tokenPrefix }}…</code></td>
+              <td>{{ token.dateLastUsed ? token.dateLastUsed|datetime('short') : 'Never'|t('content-ops') }}</td>
+              <td>
+                <form method="post">
+                  {{ csrfInput() }}
+                  {{ actionInput('content-ops/ai-access/revoke') }}
+                  {{ hiddenInput('id', token.id) }}
+                  <button type="submit" class="btn small">{{ 'Revoke'|t('content-ops') }}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% css %}
+  .co-new-token { border: 1px solid var(--hairline-color, #e3e5e8); border-radius: 6px; padding: 12px 16px; margin-bottom: 24px; background: var(--gray-050, #f3f7fc); }
+  .co-token { display: block; font-size: 14px; padding: 8px; background: #fff; border-radius: 4px; word-break: break-all; user-select: all; }
+  .co-token-form { margin-bottom: 24px; }
+{% endcss %}
