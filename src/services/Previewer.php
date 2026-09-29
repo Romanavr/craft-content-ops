@@ -143,7 +143,7 @@ class Previewer extends Component
                     $new = $old;
 
                     foreach ($targetOps as $operation) {
-                        $new = $operators->getOperator($operation->operator)->apply($new, $operation);
+                        $new = $operators->getOperator($operation->operator)->apply($new, $operation, $element);
                     }
 
                     if (Values::equal($old, $new)) {

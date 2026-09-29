@@ -11,6 +11,7 @@ use romanavr\contentops\ContentOps;
 use romanavr\contentops\models\Operation;
 use romanavr\contentops\models\Selection;
 use romanavr\contentops\models\Target;
+use romanavr\contentops\services\Targets;
 use yii\base\InvalidArgumentException;
 use yii\console\ExitCode;
 
@@ -231,7 +232,7 @@ class BulkEditController extends Controller
     {
         $plugin = ContentOps::getInstance();
         $field = Craft::$app->getFields()->getFieldByHandle($this->field);
-        $isAttribute = in_array($this->field, $plugin->getTargets()::ATTRIBUTES, true);
+        $isAttribute = Targets::isAttribute($this->field);
 
         if (!$field && !$isAttribute) {
             throw new InvalidArgumentException("Unknown field “{$this->field}”.");

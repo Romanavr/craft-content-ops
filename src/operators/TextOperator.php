@@ -2,7 +2,10 @@
 
 namespace romanavr\contentops\operators;
 
+use Craft;
+use craft\base\ElementInterface;
 use craft\fields\PlainText;
+use craft\helpers\ElementHelper;
 use romanavr\contentops\models\Operation;
 use romanavr\contentops\models\Target;
 use yii\base\InvalidArgumentException;
@@ -23,7 +26,7 @@ class TextOperator extends BaseOperator
     /**
      * @var string[] Native attributes this operator can edit.
      */
-    public const ATTRIBUTES = ['title'];
+    public const ATTRIBUTES = ['title', 'slug'];
 
     // Public Methods
     // =========================================================================
@@ -55,6 +58,7 @@ class TextOperator extends BaseOperator
             'prepend' => 'Prepend',
             'append' => 'Append',
             'replace' => 'Find and replace',
+            'pattern' => 'Set from pattern',
         ];
     }
 
@@ -80,6 +84,7 @@ class TextOperator extends BaseOperator
         match ($operation->operation) {
             'set', 'prepend', 'append' => $this->_requireString($operation, 'value'),
             'replace' => $this->_validateReplace($operation),
+            'pattern' => $this->_requireString($operation, 'pattern'),
             default => null,
         };
     }
@@ -87,7 +92,7 @@ class TextOperator extends BaseOperator
     /**
      * @inheritdoc
      */
-    public function apply(mixed $value, Operation $operation): mixed
+    public function apply(mixed $value, Operation $operation, ?ElementInterface $element = null): mixed
     {
         $current = $value === null ? '' : (string)$value;
         $options = $operation->options;
@@ -100,6 +105,7 @@ class TextOperator extends BaseOperator
             'replace' => ($options['caseSensitive'] ?? true)
                 ? str_replace((string)$options['find'], (string)$options['replace'], $current)
                 : str_ireplace((string)$options['find'], (string)$options['replace'], $current),
+            'pattern' => $this->_renderPattern((string)$options['pattern'], $operation, $element),
             default => throw new InvalidArgumentException("Unknown operation \"$operation->operation\"."),
         };
 
@@ -113,6 +119,26 @@ class TextOperator extends BaseOperator
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Renders an object template like `{title}-{postDate|date('Y')}` for the element.
+     *
+     * @param string $pattern
+     * @param Operation $operation
+     * @param ElementInterface|null $element
+     * @return string
+     * @throws InvalidArgumentException if there's no element to render against
+     */
+    private function _renderPattern(string $pattern, Operation $operation, ?ElementInterface $element): string
+    {
+        if ($element === null) {
+            throw new InvalidArgumentException('The "pattern" operation needs an element.');
+        }
+
+        $value = Craft::$app->getView()->renderObjectTemplate($pattern, $element);
+
+        return $operation->target === 'slug' ? ElementHelper::normalizeSlug($value) : trim($value);
+    }
 
     /**
      * @param Operation $operation

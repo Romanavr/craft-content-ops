@@ -4,7 +4,12 @@ namespace romanavr\contentops\services;
 
 use craft\events\RegisterComponentTypesEvent;
 use romanavr\contentops\models\Target;
+use romanavr\contentops\operators\DateOperator;
+use romanavr\contentops\operators\LightswitchOperator;
+use romanavr\contentops\operators\NumberOperator;
 use romanavr\contentops\operators\OperatorInterface;
+use romanavr\contentops\operators\OptionsOperator;
+use romanavr\contentops\operators\RelationOperator;
 use romanavr\contentops\operators\TextOperator;
 use yii\base\Component;
 use yii\base\InvalidArgumentException;
@@ -56,6 +61,11 @@ class Operators extends Component
         $event = new RegisterComponentTypesEvent([
             'types' => [
                 TextOperator::class,
+                NumberOperator::class,
+                LightswitchOperator::class,
+                OptionsOperator::class,
+                DateOperator::class,
+                RelationOperator::class,
             ],
         ]);
         $this->trigger(self::EVENT_REGISTER_OPERATORS, $event);

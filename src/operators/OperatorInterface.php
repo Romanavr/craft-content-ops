@@ -2,6 +2,7 @@
 
 namespace romanavr\contentops\operators;
 
+use craft\base\ElementInterface;
 use romanavr\contentops\errors\ConflictException;
 use romanavr\contentops\models\Operation;
 use romanavr\contentops\models\Target;
@@ -63,9 +64,10 @@ interface OperatorInterface
      *
      * @param mixed $value The current serialized value
      * @param Operation $operation
+     * @param ElementInterface|null $element The element being changed, for operations that need context (e.g. slug patterns)
      * @return mixed
      */
-    public function apply(mixed $value, Operation $operation): mixed;
+    public function apply(mixed $value, Operation $operation, ?ElementInterface $element = null): mixed;
 
     /**
      * Returns the serialized value to restore on undo.
