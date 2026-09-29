@@ -5,6 +5,7 @@ namespace romanavr\contentops\operators;
 use craft\base\ElementInterface;
 use craft\ckeditor\Field as CkeditorField;
 use craft\fields\PlainText;
+use craft\helpers\ArrayHelper;
 use romanavr\contentops\ContentOps;
 use romanavr\contentops\helpers\Matcher;
 use romanavr\contentops\models\MatchSpec;
@@ -100,6 +101,39 @@ class FindReplaceOperator extends BaseOperator
         }
 
         Matcher::validate($spec);
+    }
+
+    /**
+     * Looks at the stored value without normalizing it (normalizing CKEditor HTML is costly): if the search text
+     * isn't in it, nothing can be replaced. Regex searches always get the full treatment.
+     *
+     * @inheritdoc
+     */
+    public function mightChange(ElementInterface $element, Target $target, Operation $operation): bool
+    {
+        $spec = self::spec($operation->options);
+
+        if ($spec->regex) {
+            return true;
+        }
+
+        if ($target->attribute !== null) {
+            $raw = $element->{$target->attribute};
+        } else {
+            // CustomFieldBehavior (a generated class) holds the stored value until the field is first normalized.
+            $raw = ArrayHelper::getValue($element->getBehavior('customFields'), $target->field->handle);
+        }
+
+        if ($raw === null || $raw === '') {
+            return false;
+        }
+
+        if (!is_string($raw)) {
+            // Already normalized (e.g. an object); check properly.
+            return true;
+        }
+
+        return $spec->caseSensitive ? str_contains($raw, $spec->find) : mb_stripos($raw, $spec->find) !== false;
     }
 
     /**

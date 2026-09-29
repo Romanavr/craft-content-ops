@@ -201,6 +201,19 @@ class Previewer extends Component
 
         $seenKeys[$key] = true;
 
+        $mightChange = false;
+
+        foreach ($targetOps as $operation) {
+            if ($operators->getOperator($operation->operator)->mightChange($element, $target, $operation)) {
+                $mightChange = true;
+                break;
+            }
+        }
+
+        if (!$mightChange) {
+            return 1;
+        }
+
         try {
             $old = $targets->read($element, $target);
             $new = $old;

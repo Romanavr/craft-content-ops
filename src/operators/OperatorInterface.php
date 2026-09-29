@@ -82,6 +82,17 @@ interface OperatorInterface
     public function validateOperation(Operation $operation): void;
 
     /**
+     * A cheap check run before the (possibly expensive) value is read: return `false` if the operation can't
+     * change this target on this element, so the preview skips it. Returning `true` is always safe.
+     *
+     * @param ElementInterface $element
+     * @param Target $target
+     * @param Operation $operation
+     * @return bool
+     */
+    public function mightChange(ElementInterface $element, Target $target, Operation $operation): bool;
+
+    /**
      * Returns the new serialized value.
      *
      * @param mixed $value The current serialized value

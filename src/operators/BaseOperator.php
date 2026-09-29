@@ -2,6 +2,7 @@
 
 namespace romanavr\contentops\operators;
 
+use craft\base\ElementInterface;
 use romanavr\contentops\errors\ConflictException;
 use romanavr\contentops\helpers\Values;
 use romanavr\contentops\models\Operation;
@@ -43,6 +44,14 @@ abstract class BaseOperator implements OperatorInterface
     public function getOperationsForTarget(Target $target): array
     {
         return $this->getOperations();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function mightChange(ElementInterface $element, Target $target, Operation $operation): bool
+    {
+        return true;
     }
 
     /**
