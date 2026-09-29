@@ -120,3 +120,29 @@ it('falls back to a full scan for non-ASCII and regex searches', function(array 
     'quote' => [['find' => 'say "hi"']],
     'regex' => [['find' => 'Ac.e', 'regex' => true]],
 ]);
+
+it('previews in the background', function() {
+    $s = seedFindReplace();
+    $plugin = ContentOps::getInstance();
+
+    $id = $plugin->getFindReplace()->queuePreview(new MatchSpec(['find' => 'Acme', 'replace' => 'Globex']), new FindReplaceScope(['sections' => [$s['section']->handle]]));
+
+    expect($plugin->getChangesets()->getChangesetById($id)->status->value)->toBe('previewing');
+
+    Craft::$app->getQueue()->run();
+    $changeset = $plugin->getChangesets()->getChangesetById($id);
+
+    expect($changeset->status->value)->toBe('previewed')
+        ->and($changeset->getCount('matches'))->toBeGreaterThan(0);
+});
+
+it('reports a failed background preview on the changeset', function() {
+    $plugin = ContentOps::getInstance();
+
+    $id = $plugin->getFindReplace()->queuePreview(new MatchSpec(['find' => 'Acme']), new FindReplaceScope(['sections' => ['doesNotExist']]));
+    Craft::$app->getQueue()->run();
+    $changeset = $plugin->getChangesets()->getChangesetById($id);
+
+    expect($changeset->status->value)->toBe('failed')
+        ->and($changeset->error)->toContain('no text fields');
+});

@@ -10,6 +10,8 @@ namespace romanavr\contentops\enums;
  */
 enum ChangesetStatus: string
 {
+    /** A preview is being computed in the background. */
+    case Previewing = 'previewing';
     case Previewed = 'previewed';
     case Queued = 'queued';
     case Running = 'running';

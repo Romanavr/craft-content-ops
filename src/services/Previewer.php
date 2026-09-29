@@ -60,6 +60,7 @@ class Previewer extends Component
      * @param ChangesetType $type
      * @param callable|null $onProgress Called as `fn(int $examined)` periodically
      * @param bool $ignoreMissingTargets Don't record elements that lack a target (Find & Replace searches many fields)
+     * @param int|null $changesetId Fill in this existing (previewing) changeset instead of creating a new one
      * @return Changeset
      * @throws InvalidArgumentException if the selection or an operation is invalid
      * @throws \yii\db\Exception
@@ -71,11 +72,13 @@ class Previewer extends Component
         ChangesetType $type = ChangesetType::BulkEdit,
         ?callable $onProgress = null,
         bool $ignoreMissingTargets = false,
+        ?int $changesetId = null,
     ): Changeset {
         $this->_validate($selection, $operations);
 
         $plugin = ContentOps::getInstance();
-        $record = new ChangesetRecord();
+        $record = $changesetId !== null ? ChangesetRecord::findOne($changesetId) : null;
+        $record ??= new ChangesetRecord();
         $record->type = $type->value;
         $record->status = ChangesetStatus::Previewed->value;
         $record->userId = $user?->id;

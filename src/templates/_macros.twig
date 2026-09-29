@@ -2,6 +2,7 @@
 
 {% macro changesetStatus(status) %}
   {%- set map = {
+    previewing: ['orange', 'Finding matches…'],
     previewed: ['light', 'Preview (not applied)'],
     queued: ['orange', 'Queued'],
     running: ['orange', 'Applying…'],

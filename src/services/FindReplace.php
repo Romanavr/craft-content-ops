@@ -8,11 +8,15 @@ use craft\db\Table as CraftTable;
 use craft\elements\Entry;
 use craft\elements\User;
 use craft\fields\Matrix;
+use craft\helpers\Json;
+use craft\helpers\Queue;
 use romanavr\contentops\ContentOps;
+use romanavr\contentops\enums\ChangesetStatus;
 use romanavr\contentops\enums\ChangesetType;
 use romanavr\contentops\enums\ChangeStatus;
 use romanavr\contentops\helpers\Matcher;
 use romanavr\contentops\helpers\Values;
+use romanavr\contentops\jobs\PreviewFindReplace;
 use romanavr\contentops\models\Changeset;
 use romanavr\contentops\models\FindReplaceScope;
 use romanavr\contentops\models\MatchSpec;
@@ -21,6 +25,7 @@ use romanavr\contentops\models\Selection;
 use romanavr\contentops\models\Target;
 use romanavr\contentops\operators\FindReplaceOperator;
 use romanavr\contentops\records\Change;
+use romanavr\contentops\records\Changeset as ChangesetRecord;
 use yii\base\Component;
 use yii\base\InvalidArgumentException;
 
@@ -41,11 +46,12 @@ class FindReplace extends Component
      * @param MatchSpec $spec
      * @param FindReplaceScope $scope
      * @param User|null $user
+     * @param int|null $changesetId Fill in this (previewing) changeset instead of creating one
      * @return Changeset
      * @throws InvalidArgumentException if the spec is invalid or nothing is searchable
      * @throws \yii\db\Exception
      */
-    public function preview(MatchSpec $spec, FindReplaceScope $scope, ?User $user = null): Changeset
+    public function preview(MatchSpec $spec, FindReplaceScope $scope, ?User $user = null, ?int $changesetId = null): Changeset
     {
         if (!$spec->validate()) {
             throw new InvalidArgumentException(implode(' ', $spec->getFirstErrors()));
@@ -78,11 +84,53 @@ class FindReplace extends Component
             $user,
             ChangesetType::FindReplace,
             ignoreMissingTargets: true,
+            changesetId: $changesetId,
         );
 
         $plugin->getChangesets()->refreshCounts($changeset->id, ['matches' => $this->countMatches($changeset)]);
 
         return $plugin->getChangesets()->getChangesetById($changeset->id);
+    }
+
+    /**
+     * Starts a preview in the background. Returns the changeset (status `previewing`) it will fill in.
+     *
+     * @param MatchSpec $spec
+     * @param FindReplaceScope $scope
+     * @param User|null $user
+     * @return int The changeset ID
+     * @throws InvalidArgumentException if the spec is invalid
+     * @throws \yii\db\Exception
+     */
+    public function queuePreview(MatchSpec $spec, FindReplaceScope $scope, ?User $user = null): int
+    {
+        if (!$spec->validate()) {
+            throw new InvalidArgumentException(implode(' ', $spec->getFirstErrors()));
+        }
+
+        Matcher::validate($spec);
+
+        $record = new ChangesetRecord();
+        $record->type = ChangesetType::FindReplace->value;
+        $record->status = ChangesetStatus::Previewing->value;
+        $record->userId = $user?->id;
+        $record->selection = Json::encode(['elementType' => Entry::class, 'criteria' => [], 'siteIds' => $scope->siteIds ?: null]);
+        $record->operations = Json::encode([[
+            'target' => '*',
+            'operator' => FindReplaceOperator::handle(),
+            'operation' => 'replace',
+            'options' => $spec->toArray(),
+        ]]);
+        $record->save(false);
+
+        Queue::push(new PreviewFindReplace([
+            'changesetId' => $record->id,
+            'spec' => $spec->toArray(),
+            'scope' => $scope->toArray(),
+            'userId' => $user?->id,
+        ]));
+
+        return $record->id;
     }
 
     /**

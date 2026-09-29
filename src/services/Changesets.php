@@ -136,7 +136,7 @@ class Changesets extends Component
 
         $deleted = $db->createCommand()->delete(Table::CHANGESETS, [
             'and',
-            ['status' => ChangesetStatus::Previewed->value],
+            ['status' => [ChangesetStatus::Previewed->value, ChangesetStatus::Previewing->value]],
             ['<', 'dateCreated', Db::prepareDateForDb(new DateTime('-1 day'))],
         ])->execute();
 
