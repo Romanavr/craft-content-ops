@@ -1,3 +1,5 @@
+<img src="docs/icon.png" alt="Content Ops" width="128" align="right">
+
 # Content Ops
 
 Bulk edit and find & replace for Craft CMS, with preview and undo.
