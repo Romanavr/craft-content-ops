@@ -19,3 +19,6 @@
 .co-diff del { background: #fde2e2; color: #9b1c1c; text-decoration: line-through; }
 .co-diff ins { background: #dcf5e3; color: #146c2e; text-decoration: none; }
 @media (max-width: 720px) { .co-row { grid-template-columns: 1fr; } }
+.co-bulk-edit-btn { display: inline-flex; align-items: center; gap: 6px; }
+.co-bulk-edit-btn .cp-icon { width: 14px; height: 14px; display: inline-flex; }
+.co-bulk-edit-btn .cp-icon svg { width: 100%; height: 100%; fill: currentColor; }

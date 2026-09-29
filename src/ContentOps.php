@@ -13,6 +13,7 @@ use craft\events\RegisterUserPermissionsEvent;
 use craft\services\Gc;
 use craft\services\UserPermissions;
 use craft\web\UrlManager;
+use craft\web\View;
 use romanavr\contentops\elements\actions\BulkEdit;
 use romanavr\contentops\models\Settings;
 use romanavr\contentops\services\Applier;
@@ -22,6 +23,7 @@ use romanavr\contentops\services\Operators;
 use romanavr\contentops\services\Previewer;
 use romanavr\contentops\services\Selections;
 use romanavr\contentops\services\Targets;
+use romanavr\contentops\web\assets\bulkedit\BulkEditAsset;
 use yii\base\Event;
 
 /**
@@ -70,7 +72,7 @@ class ContentOps extends Plugin
         // Any code that creates an element query or loads Twig should be deferred until
         // after Craft is fully initialized, to avoid conflicts with other plugins/modules
         Craft::$app->onInit(function() {
-            // ...
+            $this->_registerCpAssets();
         });
     }
 
@@ -173,6 +175,28 @@ class ContentOps extends Plugin
             'plugin' => $this,
             'settings' => $this->getSettings(),
         ]);
+    }
+
+    /**
+     * Loads the bulk edit script on CP pages for users who can bulk edit (it adds the “Bulk edit” button to entry indexes).
+     */
+    private function _registerCpAssets(): void
+    {
+        $request = Craft::$app->getRequest();
+
+        if ($request->getIsConsoleRequest() || !$request->getIsCpRequest() || $request->getAcceptsJson()) {
+            return;
+        }
+
+        Event::on(View::class, View::EVENT_BEFORE_RENDER_PAGE_TEMPLATE, function() {
+            $user = Craft::$app->getUser();
+
+            if ($user->getIsGuest() || !$user->checkPermission('contentOps:bulkEdit')) {
+                return;
+            }
+
+            BulkEditAsset::registerForIndexes(Craft::$app->getView());
+        });
     }
 
     private function attachEventHandlers(): void

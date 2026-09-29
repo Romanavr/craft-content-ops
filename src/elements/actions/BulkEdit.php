@@ -34,13 +34,7 @@ class BulkEdit extends ElementAction
         $view = Craft::$app->getView();
         $view->registerAssetBundle(BulkEditAsset::class);
 
-        $sites = [];
-
-        foreach (Craft::$app->getSites()->getEditableSites() as $site) {
-            $sites[] = ['id' => $site->id, 'name' => $site->getName()];
-        }
-
-        $view->registerJs(sprintf('Craft.ContentOps.BulkEdit.register(%s, %s);', Json::encode(static::class), Json::encode($sites)));
+        $view->registerJs(sprintf('Craft.ContentOps.BulkEdit.register(%s, %s);', Json::encode(static::class), Json::encode(BulkEditAsset::editableSites())));
 
         return null;
     }

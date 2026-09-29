@@ -71,10 +71,12 @@
             .append($('<input type="radio" name="scope"/>').val(value).prop('checked', checked))
             .append(document.createTextNode(' ' + label));
 
-        radio('selected', t('{num, plural, =1{The selected entry} other{The # selected entries}}', {num: selected}), true).appendTo($scope);
+        if (selected) {
+          radio('selected', t('{num, plural, =1{The selected entry} other{The # selected entries}}', {num: selected}), true).appendTo($scope);
+        }
 
         if (total && total > selected) {
-          radio('all', t('All {num, number} entries matching the current view', {num: total}), false).appendTo($scope);
+          radio('all', t('All {num, number} entries matching the current view', {num: total}), !selected).appendTo($scope);
         }
 
         this.addListener($scope.find('input'), 'change', 'loadTargets');
@@ -93,7 +95,7 @@
       },
 
       scope: function() {
-        return this.$editor.find('input[name="scope"]:checked').val() || 'selected';
+        return this.$editor.find('input[name="scope"]:checked').val() || (this.selectedIds.length ? 'selected' : 'all');
       },
 
       siteIds: function() {
@@ -210,6 +212,37 @@
       },
     },
     {
+      /**
+       * Adds a “Bulk edit” button to the entry index footer (next to Export), usable with or without a selection.
+       */
+      installButton: function(config) {
+        const install = () => {
+          const index = Craft.elementIndex;
+          if (!index || index.settings.context !== 'index' || index.elementType !== 'craft\\elements\\Entry') {
+            return !!index;
+          }
+          const $anchor = index.$exportBtn && index.$exportBtn.length ? index.$exportBtn : null;
+          if (!$anchor || $anchor.siblings('.co-bulk-edit-btn').length) {
+            return !!$anchor;
+          }
+          const $btn = $('<button type="button" class="btn co-bulk-edit-btn"/>')
+            .append($('<span class="cp-icon" aria-hidden="true"/>').html(config.icon || ''))
+            .append($('<span class="label"/>').text(config.label));
+          $btn.on('click', () => {
+            new Craft.ContentOps.BulkEdit(index, index.view ? index.view.getSelectedElementIds() : [], config.sites);
+          });
+          $btn.insertBefore($anchor);
+          return true;
+        };
+        // The index (and its footer) is built after page load; retry briefly until it's there.
+        let tries = 0;
+        const timer = setInterval(() => {
+          if (install() || ++tries > 40) {
+            clearInterval(timer);
+          }
+        }, 250);
+      },
+
       register: function(type, sites) {
         new Craft.ElementActionTrigger({
           type: type,
