@@ -13,6 +13,7 @@ use romanavr\contentops\ContentOps;
 use romanavr\contentops\db\ElementSiteBatcher;
 use romanavr\contentops\db\Table;
 use romanavr\contentops\enums\ChangesetStatus;
+use romanavr\contentops\enums\ChangesetType;
 use romanavr\contentops\enums\ChangeStatus;
 use romanavr\contentops\jobs\ApplyChangeset;
 use romanavr\contentops\jobs\UndoChangeset;
@@ -119,9 +120,11 @@ class Changesets extends Component
      */
     public function canApply(Changeset $changeset, User $user): bool
     {
+        $permission = $changeset->type === ChangesetType::FindReplace ? 'contentOps:findReplace' : 'contentOps:bulkEdit';
+
         return $changeset->status === ChangesetStatus::Previewed
             && ($changeset->userId === $user->id || $user->admin)
-            && $user->can('contentOps:bulkEdit');
+            && $user->can($permission);
     }
 
     /**

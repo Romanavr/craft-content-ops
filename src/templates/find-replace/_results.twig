@@ -1,0 +1,103 @@
+{% extends '_layouts/cp.twig' %}
+{% import 'content-ops/_macros.twig' as co %}
+
+{% set title = 'Find & Replace'|t('content-ops') %}
+{% set selectedSubnavItem = 'find-replace' %}
+{% set crumbs = [{label: 'Find & Replace'|t('content-ops'), url: cpUrl('content-ops/find-replace')}] %}
+{% set status = changeset.status.value %}
+{% set options = (changeset.operations|first).options ?? {} %}
+
+{% block content %}
+  <p>
+    {{ 'Find'|t('content-ops') }} <code>{{ options.find ?? '' }}</code> → <code>{{ options.replace ?? '' }}</code>
+    <a class="co-edit-search" href="{{ cpUrl('content-ops/find-replace', {from: changeset.id}) }}">{{ 'Edit search'|t('content-ops') }}</a>
+  </p>
+
+  {% if status == 'previewing' %}
+    <p><span class="spinner" aria-hidden="true"></span> {{ 'Finding matches… This page updates by itself.'|t('content-ops') }}</p>
+    {% js %}
+      (function() {
+        Craft.cp.runQueue();
+        const poll = async () => {
+          try {
+            const {data} = await Craft.sendActionRequest('GET', 'content-ops/changesets/status', {params: {id: {{ changeset.id }}}});
+            if (data.status !== 'previewing') { window.location.reload(); return; }
+          } catch (e) {}
+          setTimeout(poll, 2000);
+        };
+        setTimeout(poll, 1500);
+      })();
+    {% endjs %}
+  {% elseif status == 'failed' %}
+    <p class="error">{{ changeset.error ?? 'The search failed.'|t('content-ops') }}</p>
+  {% elseif status != 'previewed' %}
+    <p>{{ 'This search was already applied.'|t('content-ops') }} <a href="{{ cpUrl('content-ops/history/' ~ changeset.id) }}">{{ 'View it in the history'|t('content-ops') }}</a></p>
+  {% elseif not rows %}
+    <p class="zilch">{{ 'No matches.'|t('content-ops') }}</p>
+  {% else %}
+    <p class="co-fr-summary">
+      <strong>{{ '{num, plural, =1{# match} other{# matches}}'|t('content-ops', {num: changeset.getCount('matches')}) }}</strong>
+      {{ 'in {num, plural, =1{# field} other{# fields}}'|t('content-ops', {num: changeset.getCount('pending') + changeset.getCount('skipped')}) }}
+      {% if changeset.getCount('excludedMatches') %} · {{ '{num, number} excluded'|t('content-ops', {num: changeset.getCount('excludedMatches')}) }}{% endif %}
+      {% if changeset.getCount('withDrafts') %} · <span class="warning">{{ '{num, plural, =1{One entry has drafts} other{# entries have drafts}} that will be marked as outdated'|t('content-ops', {num: changeset.getCount('withDrafts')}) }}</span>{% endif %}
+    </p>
+
+    <form method="post" accept-charset="UTF-8">
+      {{ csrfInput() }}
+      {{ actionInput('content-ops/find-replace/exclude') }}
+      {{ hiddenInput('changesetId', changeset.id) }}
+      {{ redirectInput(craft.app.request.pathInfo ~ (page > 1 ? '?page=' ~ page : '')) }}
+
+      <p class="light">{{ 'Uncheck matches you want to keep as they are.'|t('content-ops') }}</p>
+
+      {% for row in rows %}
+        <div class="co-fr-group">
+          <div class="co-fr-head">
+            {{ row.display.elementHtml|raw }}
+            <span class="light">{{ row.display.target }}{% if craft.app.isMultiSite %} · {{ row.display.site }}{% endif %}</span>
+          </div>
+          <ul class="co-fr-matches">
+            {% for match in row.matches %}
+              {% set id = 'm-' ~ row.change.id ~ '-' ~ match.index %}
+              <li>
+                {{ hiddenInput('shown[' ~ row.change.id ~ '][]', match.index) }}
+                <input type="checkbox" class="checkbox" id="{{ id }}" name="include[{{ row.change.id }}][]" value="{{ match.index }}" {{ match.index in row.excluded ? '' : 'checked' }}>
+                <label for="{{ id }}" class="co-diff">{{ match.before }}<del>{{ match.match }}</del><ins>{{ match.replacement }}</ins>{{ match.after }}</label>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+
+      {% if totalPages > 1 %}
+        <div class="flex co-pagination">
+          {% if page > 1 %}<a class="btn" href="{{ url(craft.app.request.pathInfo, {page: page - 1}) }}">{{ 'Previous'|t('app') }}</a>{% endif %}
+          <span class="light">{{ 'Page {page} of {total} · save your selection before changing pages'|t('content-ops', {page: page, total: totalPages}) }}</span>
+          {% if page < totalPages %}<a class="btn" href="{{ url(craft.app.request.pathInfo, {page: page + 1}) }}">{{ 'Next'|t('app') }}</a>{% endif %}
+        </div>
+      {% endif %}
+
+      <div class="flex co-fr-actions">
+        <button type="submit" class="btn">{{ 'Save selection'|t('content-ops') }}</button>
+        {% if canApply %}
+          <button type="submit" name="apply" value="1" class="btn submit">{{ 'Apply replacements'|t('content-ops') }}</button>
+        {% endif %}
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% css %}
+  .co-edit-search { margin-left: 8px; }
+  .co-fr-summary { margin-bottom: 16px; }
+  .co-fr-group { border: 1px solid var(--hairline-color, #e3e5e8); border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; }
+  .co-fr-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .co-fr-matches { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .co-fr-matches li { display: flex; align-items: flex-start; gap: 8px; }
+  .co-diff { font-family: var(--code-font, monospace); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+  .co-diff del { background: #fde2e2; color: #9b1c1c; text-decoration: line-through; }
+  .co-diff ins { background: #dcf5e3; color: #146c2e; text-decoration: none; }
+  .co-fr-matches input:not(:checked) + label ins { display: none; }
+  .co-fr-matches input:not(:checked) + label del { background: none; color: inherit; text-decoration: none; }
+  .co-pagination, .co-fr-actions { margin-top: 16px; gap: 10px; align-items: center; }
+{% endcss %}
