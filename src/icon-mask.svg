@@ -1,11 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Ninja head with a cut-out eye band -->
-  <path fill-rule="evenodd" d="M43 5a17 17 0 1 1 0 34a17 17 0 1 1 0-34zM31.5 16h23a5 5 0 0 1 0 10h-23a5 5 0 0 1 0-10z"/>
-  <circle cx="37" cy="21" r="2.8"/>
-  <circle cx="49" cy="21" r="2.8"/>
-  <!-- Shoulders -->
-  <path d="M29 60c0-9 6-14 14-14s14 5 14 14z"/>
-  <!-- Pencil -->
-  <path d="M5 60L12.06 56.51L24.9 39.14L19.1 34.86L6.26 52.23Z"/>
-  <path d="M25.85 37.85L27.99 34.96L22.19 30.68L20.05 33.57Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 15 100 100" fill="currentColor">
+  <path fill-rule="evenodd" d="M72 16C42 16 20 38 20 66v10c0 25 18 38 44 38s44-16 44-40V49c0-3-2-5-5-5H86c-8 0-12-4-12-12V20c0-2-1-4-2-4ZM40 54h47c7 0 12 5 12 11s-5 11-12 11H40c-7 0-11-5-11-11s4-11 11-11Z"/>
+  <path d="M79 19v13c0 5 2 7 7 7h15c1 0 2-1 1-2L82 17c-2-2-3-1-3 2Z"/>
+  <circle cx="40" cy="65" r="6"/>
+  <circle cx="68" cy="65" r="6"/>
 </svg>
