@@ -93,3 +93,50 @@ it('lists nested fields as targets', function() {
         ->and($targets["$matrix.$type.$text"]['label'])->toContain('›')
         ->and($targets["$matrix.$type.$text"]['operator'])->toBe('text');
 });
+
+it('adds a nested entry and undo removes only that one', function() {
+    [$section, $matrix, $type, $text, $owners] = seedMatrix([['a', 'b']]);
+    $plugin = ContentOps::getInstance();
+
+    $changeset = $plugin->getPreviewer()->preview(
+        new Selection(['criteria' => ['section' => $section]]),
+        [new Operation(['target' => $matrix, 'operator' => 'matrix', 'operation' => 'add', 'options' => ['type' => $type, 'position' => 'start', 'values' => [$text => 'new block']]])],
+    );
+    $plugin->getChangesets()->applyNow($changeset->id);
+
+    expect(blockValues($owners[0], $matrix, $text))->toBe(['new block', 'a', 'b']);
+
+    // An editor adds another block by hand afterwards.
+    $owner = Entry::find()->id($owners[0]->id)->one();
+    $blocks = $owner->getFieldValue($matrix)->status(null)->all();
+    $value = [];
+    foreach ($blocks as $block) {
+        $value[$block->id] = ['type' => $type, 'fields' => [$text => $block->getFieldValue($text)]];
+    }
+    $value['new1'] = ['type' => $type, 'fields' => [$text => 'by hand']];
+    $owner->setFieldValue($matrix, $value);
+    Craft::$app->getElements()->saveElement($owner);
+
+    $plugin->getChangesets()->undoNow($changeset->id);
+
+    expect(blockValues($owners[0], $matrix, $text))->toBe(['a', 'b', 'by hand']);
+});
+
+it('removes nested entries and undo restores the same ones in place', function() {
+    [$section, $matrix, $type, $text, $owners] = seedMatrix([['keep', 'Acme drop', 'keep too', 'acme also']]);
+    $plugin = ContentOps::getInstance();
+    $idsBefore = Entry::find()->ownerId($owners[0]->id)->fieldId(Craft::$app->getFields()->getFieldByHandle($matrix)->id)->status(null)->ids();
+
+    $changeset = $plugin->getPreviewer()->preview(
+        new Selection(['criteria' => ['section' => $section]]),
+        [new Operation(['target' => $matrix, 'operator' => 'matrix', 'operation' => 'remove', 'options' => ['type' => $type, 'contains' => 'acme']])],
+    );
+    $plugin->getChangesets()->applyNow($changeset->id);
+
+    expect(blockValues($owners[0], $matrix, $text))->toBe(['keep', 'keep too']);
+
+    $plugin->getChangesets()->undoNow($changeset->id);
+
+    expect(blockValues($owners[0], $matrix, $text))->toBe(['keep', 'Acme drop', 'keep too', 'acme also'])
+        ->and(Entry::find()->ownerId($owners[0]->id)->fieldId(Craft::$app->getFields()->getFieldByHandle($matrix)->id)->status(null)->ids())->toBe($idsBefore);
+});

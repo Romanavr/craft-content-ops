@@ -259,6 +259,19 @@ class Applier extends Component
             return;
         }
 
+        // Log what was actually stored (e.g. new nested entries only get their IDs on save; undo needs them).
+        if ($successStatus === ChangeStatus::Applied) {
+            $targets = ContentOps::getInstance()->getTargets();
+
+            foreach ($written as $change) {
+                $target = $targets->resolve($element, $change->target);
+
+                if ($target !== null) {
+                    $change->newValue = Values::encode($targets->read($element, $target));
+                }
+            }
+        }
+
         $this->_markAll($written, $successStatus, null, Db::prepareDateForDb($element->dateUpdated));
     }
 

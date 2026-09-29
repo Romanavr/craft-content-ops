@@ -238,6 +238,10 @@ class Targets extends Component
      */
     public function read(ElementInterface $element, Target $target): mixed
     {
+        if ($target->field instanceof Matrix) {
+            return $this->_readMatrix($element, $target->field);
+        }
+
         if ($target->field !== null) {
             return $target->field->serializeValueForDb($element->getFieldValue($target->field->handle), $element);
         }
@@ -259,6 +263,11 @@ class Targets extends Component
      */
     public function write(ElementInterface $element, Target $target, mixed $value): void
     {
+        if ($target->field instanceof Matrix) {
+            $this->_writeMatrix($element, $target->field, is_array($value) ? $value : []);
+            return;
+        }
+
         if ($target->field !== null) {
             $element->setFieldValue($target->field->handle, $value);
             return;
@@ -303,6 +312,75 @@ class Targets extends Component
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Reads a Matrix field as an ordered list of its nested entries (order matters, so it's a list, not an ID map).
+     *
+     * @param ElementInterface $owner
+     * @param Matrix $field
+     * @return array<int, array<string, mixed>>
+     */
+    private function _readMatrix(ElementInterface $owner, Matrix $field): array
+    {
+        /** @var EntryQuery|\craft\elements\ElementCollection $value */
+        $value = $owner->getFieldValue($field->handle);
+        /** @var Entry[] $entries */
+        $entries = $value instanceof EntryQuery ? (clone $value)->status(null)->all() : $value->all();
+
+        return array_map(fn(Entry $entry) => [
+            'id' => $entry->id,
+            'type' => $entry->getType()->handle,
+            'enabled' => (bool)$entry->enabled,
+            'title' => $entry->title,
+            'slug' => $entry->slug,
+            'fields' => $entry->getSerializedFieldValuesForDb(),
+        ], $entries);
+    }
+
+    /**
+     * Writes a Matrix field from a list produced by {@see _readMatrix()}. Nested entries with an ID are kept
+     * (and restored from the trash if an earlier change removed them); ones without an ID are created;
+     * existing ones that aren't listed are soft-deleted by Craft.
+     *
+     * @param ElementInterface $owner
+     * @param Matrix $field
+     * @param array<int, array<string, mixed>> $blocks
+     */
+    private function _writeMatrix(ElementInterface $owner, Matrix $field, array $blocks): void
+    {
+        $ids = array_values(array_filter(array_map(fn(array $block) => $block['id'] ?? null, $blocks)));
+
+        if ($ids && $owner->id) {
+            $trashed = Entry::find()
+                ->id($ids)
+                ->fieldId($field->id)
+                ->ownerId($owner->id)
+                ->siteId($owner->siteId)
+                ->status(null)
+                ->trashed()
+                ->all();
+
+            if ($trashed) {
+                Craft::$app->getElements()->restoreElements($trashed);
+            }
+        }
+
+        $value = [];
+        $new = 0;
+
+        foreach ($blocks as $block) {
+            $key = $block['id'] ?? sprintf('new%s', ++$new);
+            $value[$key] = [
+                'type' => $block['type'],
+                'enabled' => $block['enabled'] ?? true,
+                'title' => $block['title'] ?? null,
+                'slug' => $block['slug'] ?? null,
+                'fields' => $block['fields'] ?? [],
+            ];
+        }
+
+        $owner->setFieldValue($field->handle, $value);
+    }
 
     /**
      * Resolves `matrixField.entryType.innerField` on a nested entry, checking it belongs to that field and type.

@@ -323,11 +323,31 @@
       this.$inputs.empty();
       const operation = this.operation();
       (operation?.inputs || []).forEach((input) => this.renderInput(input));
+      this.$inputs.find('select').on('change', () => this.applyShowWhen());
+      this.applyShowWhen();
+      this.modal.updateSizeAndPosition();
+    },
+
+    /**
+     * Shows inputs whose `showWhen` conditions match the current values of other inputs
+     * (e.g. field inputs for the chosen Matrix entry type).
+     */
+    applyShowWhen: function() {
+      this.$inputs.children('.co-input[data-show-when]').each((i, el) => {
+        const conditions = JSON.parse(el.getAttribute('data-show-when'));
+        const visible = Object.entries(conditions).every(([name, value]) =>
+          this.$inputs.children(`.co-input[data-name="${name}"]`).find('select, input').val() === value
+        );
+        $(el).toggleClass('hidden', !visible);
+      });
       this.modal.updateSizeAndPosition();
     },
 
     renderInput: function(input) {
       const $field = $('<div class="co-input"/>').attr('data-name', input.name).attr('data-type', input.type).appendTo(this.$inputs);
+      if (input.showWhen) {
+        $field.attr('data-show-when', JSON.stringify(input.showWhen));
+      }
       const label = t(input.label);
 
       switch (input.type) {
@@ -397,21 +417,30 @@
       }
 
       const options = {};
-      this.$inputs.children('.co-input').each((i, el) => {
+      // Dotted names (values.heading) become nested options: {values: {heading: …}}
+      const set = (name, value) => {
+        const path = String(name).split('.');
+        let obj = options;
+        path.slice(0, -1).forEach((key) => {
+          obj = obj[key] = obj[key] || {};
+        });
+        obj[path[path.length - 1]] = value;
+      };
+      this.$inputs.children('.co-input').not('.hidden').each((i, el) => {
         const $field = $(el);
-        const name = $field.data('name');
+        const name = $field.attr('data-name');
         switch ($field.data('type')) {
           case 'checkboxes':
-            options[name] = $field.find('input:checked').map((j, cb) => cb.value).get();
+            set(name, $field.find('input:checked').map((j, cb) => cb.value).get());
             break;
           case 'lightswitch':
-            options[name] = $field.find('input').prop('checked');
+            set(name, $field.find('input').prop('checked'));
             break;
           case 'elements':
-            options[name] = $field.data('ids');
+            set(name, $field.data('ids'));
             break;
           default:
-            options[name] = $field.find('input, textarea, select').val();
+            set(name, $field.find('input, textarea, select').val());
         }
       });
 

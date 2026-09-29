@@ -6,6 +6,7 @@ use craft\events\RegisterComponentTypesEvent;
 use romanavr\contentops\models\Target;
 use romanavr\contentops\operators\DateOperator;
 use romanavr\contentops\operators\LightswitchOperator;
+use romanavr\contentops\operators\MatrixOperator;
 use romanavr\contentops\operators\NumberOperator;
 use romanavr\contentops\operators\OperatorInterface;
 use romanavr\contentops\operators\OptionsOperator;
@@ -66,6 +67,7 @@ class Operators extends Component
                 OptionsOperator::class,
                 DateOperator::class,
                 RelationOperator::class,
+                MatrixOperator::class,
             ],
         ]);
         $this->trigger(self::EVENT_REGISTER_OPERATORS, $event);
