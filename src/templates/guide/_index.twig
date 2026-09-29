@@ -84,7 +84,14 @@ php craft content-ops/changesets/apply 12
 php craft content-ops/changesets/undo 12 [--force]</code></pre>
 
   <h2 id="ai">AI access (MCP)</h2>
-  <p>AI tools such as Claude Code, Claude Desktop and Cursor can read your content model and content through the built-in MCP server, <code>php craft content-ops/mcp</code>. It offers <code>get_project_schema</code>, <code>search_content</code> and <code>read_entry</code>. It is read-only for now; AI-proposed changesets that you approve in the CP (and can undo) are planned.</p>
+  <p>AI tools such as Claude and Cursor can connect to Content Ops over MCP. They read your content model and content, and <strong>propose changes as changesets</strong>. A proposal changes nothing until a person reviews it here and applies it, and it can be undone like any other changeset.</p>
+  <ol>
+    <li>Go to <strong>Content Ops → AI Access</strong>, name a token, and choose what the AI may do: <em>Read only</em>, <em>Propose changes</em> (a person applies them) or <em>Propose and apply changes</em>.</li>
+    <li>Copy the token and the client config shown once, and paste them into your AI tool.</li>
+    <li>Ask for a change, for example <em>“Add ‘(2026)’ to the titles of all news entries about Acme”</em>. The AI replies with sample before/after values and a link.</li>
+    <li>Open <strong>History → AI proposals awaiting review</strong> (the Content Ops menu shows how many are waiting), check the changes, and click <strong>Apply</strong>.</li>
+  </ol>
+  <p>Tokens act as the user who created them, with that user’s permissions. They can be revoked any time and are limited in how much they can change at once (see Settings). Use <strong>Settings → AI context</strong> to tell AI tools about tone of voice, naming rules or sections they must not touch.</p>
 </div>
 {% endblock %}
 

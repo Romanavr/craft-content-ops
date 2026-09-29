@@ -1,5 +1,15 @@
 # Release Notes for Content Ops
 
+## Unreleased
+
+### Added
+- AI access over MCP (Pro): AI tools propose bulk edits and find & replace as changesets; people review and apply them in the CP, and can undo them.
+- HTTP MCP endpoint with per-user access tokens (read only / propose / propose and apply), managed under Content Ops → AI Access.
+- New MCP tools: `get_edit_options`, `propose_bulk_edit`, `propose_find_replace`, `get_changeset`, `list_changesets`, `apply_changeset`, `undo_changeset`; new resource `project://context`.
+- History marks AI proposals and can filter those awaiting review; the Content Ops menu shows how many are waiting.
+- Settings: AI context notes, max items per AI changeset.
+- “Use AI access (MCP tokens)” permission.
+
 ## 1.0.0-beta.1 - 2026-09-30
 
 ### Added

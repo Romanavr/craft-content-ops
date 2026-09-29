@@ -72,33 +72,45 @@ php craft content-ops/changesets/apply 12
 php craft content-ops/changesets/undo 12 [--force]
 ```
 
-## MCP server (AI access)
+## AI access (MCP)
 
-Content Ops ships an [MCP](https://modelcontextprotocol.io) server so AI clients (Claude Code, Claude Desktop, Cursor…) can
-understand and read your content. It currently runs over stdio from the Craft console:
+Content Ops includes an [MCP](https://modelcontextprotocol.io) server, so AI tools (Claude, Cursor, …) can understand your content model, read content and **propose changes as changesets**. People stay in control: a proposal changes nothing until someone reviews it in the CP and applies it, and every change can be undone like any other.
 
-```bash
-php craft content-ops/mcp
-```
-
-Example client config (`.mcp.json`):
+**Connect over HTTP (Pro):** go to **Content Ops → AI Access**, create a token, and paste the config it shows into your AI tool:
 
 ```json
 {
   "mcpServers": {
-    "content-ops": { "command": "php", "args": ["/path/to/my-project/craft", "content-ops/mcp"] }
+    "content-ops": {
+      "type": "http",
+      "url": "https://example.com/actions/content-ops/mcp",
+      "headers": { "Authorization": "Bearer co_…" }
+    }
   }
 }
 ```
 
-| Type | Name | Purpose |
-|---|---|---|
-| tool | `get_project_schema` | Sites, sections, entry types, field layouts and fields |
-| resource | `project://schema` | Same as above, as a resource |
-| tool | `search_content` | Search entries by section, type, site, status and Craft search query |
-| tool | `read_entry` | One entry with native attributes and all field values (incl. nested entries) |
+Each token acts as the user who created it, with their permissions, in one of three modes:
 
-All tools are read-only for now. AI-proposed changesets (reviewed and approved in the CP, undoable like any other) are planned.
+| Mode | The AI can |
+|---|---|
+| Read only | read the content model and content |
+| Propose changes | also create changesets; **a person reviews and applies them** under History (the default) |
+| Propose and apply | also apply and undo changesets itself, after the user confirms in the chat |
+
+**Or locally over stdio:** `php craft content-ops/mcp [--mode=readonly|propose|full] [--as=username]`.
+
+| Tool / resource | What it does |
+|---|---|
+| `get_project_schema`, `project://schema` | Sites, sections, entry types, field layouts and fields |
+| `project://context` | Your notes for AI tools (Settings → AI context): tone of voice, naming rules, what not to touch |
+| `search_content`, `read_entry` | Find and read entries (only those the token's user can view) |
+| `get_edit_options` | What can be edited on some entries: fields, operations and their options |
+| `propose_bulk_edit`, `propose_find_replace` | Create a previewed changeset (nothing is saved) and return sample changes plus a review link |
+| `get_changeset`, `list_changesets` | Inspect proposals and history |
+| `apply_changeset`, `undo_changeset` | Only in “Propose and apply” mode |
+
+AI proposals are marked **AI · token name** in the History, which has an **AI proposals awaiting review** filter, and the Content Ops menu shows how many are waiting. Proposals are limited in size (Settings → Max items per AI changeset) and tokens are rate-limited. Tokens are stored as hashes and can be revoked any time.
 
 ## Requirements
 
