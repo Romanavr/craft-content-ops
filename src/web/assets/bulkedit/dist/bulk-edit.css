@@ -16,9 +16,10 @@
 .co-bulk-edit .co-preview-summary { margin-bottom: 12px; }
 .co-bulk-edit .co-preview-table table { table-layout: fixed; }
 .co-bulk-edit .co-preview-table td { vertical-align: top; overflow: hidden; }
-.co-bulk-edit .co-preview-table .co-col-element { width: 26%; }
-.co-bulk-edit .co-preview-table .co-col-site { width: 9%; }
-.co-bulk-edit .co-preview-table .co-col-field { width: 13%; }
+.co-bulk-edit .co-preview-table .co-col-element { width: 24%; }
+.co-bulk-edit .co-preview-table .co-col-site { width: 12%; }
+.co-bulk-edit .co-preview-table td.co-site { overflow-wrap: anywhere; }
+.co-bulk-edit .co-preview-table .co-col-field { width: 12%; }
 .co-bulk-edit .co-preview-table .chip { max-width: 100%; }
 .co-bulk-edit .co-preview-table .chip .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .co-bulk-edit .co-diff { font-family: var(--code-font, monospace); font-size: 12px; white-space: pre-wrap; word-break: break-word; }

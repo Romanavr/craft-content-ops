@@ -11,6 +11,9 @@
   - AI proposals over MCP
 - The plugin settings page has a Content Ops banner.
 
+### Fixed
+- Long site names (e.g. “Nederlands”) are no longer cut off in the Bulk edit preview.
+
 ## 1.0.0-beta.3 - 2026-09-30
 
 ### Changed

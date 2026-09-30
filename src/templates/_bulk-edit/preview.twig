@@ -33,7 +33,7 @@
           {% for row in rows %}
             <tr class="co-status-{{ row.change.status }}">
               <td>{{ row.elementHtml|raw }}</td>
-              {% if craft.app.isMultiSite %}<td>{{ row.site }}</td>{% endif %}
+              {% if craft.app.isMultiSite %}<td class="co-site">{{ row.site }}</td>{% endif %}
               <td>{{ row.target }}</td>
               {% if row.change.status == 'pending' %}
                 <td class="co-diff co-before">{{ row.before|raw }}</td>
