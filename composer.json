@@ -31,7 +31,8 @@
     "developer": "Romanavr",
     "documentationUrl": "https://github.com/romanavr/craft-content-ops",
     "class": "romanavr\\contentops\\ContentOps",
-    "changelogUrl": "https://raw.githubusercontent.com/romanavr/craft-content-ops/main/CHANGELOG.md"
+    "changelogUrl": "https://raw.githubusercontent.com/romanavr/craft-content-ops/main/CHANGELOG.md",
+    "developerUrl": "https://github.com/Romanavr"
   },
   "scripts": {
     "check-cs": "ecs check --ansi",

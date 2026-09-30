@@ -1,10 +1,12 @@
-<img src="docs/icon.png" alt="Content Ops" width="128" align="right">
+<img src="docs/banner.png" alt="Content Ops: bulk content editing for Craft CMS" width="100%">
 
 # Content Ops
 
 Bulk edit and find & replace for Craft CMS, with preview and undo.
 
 Change hundreds of entries in minutes, see every change before it happens, and undo it if you got it wrong.
+
+**Free.** Every feature is included: Matrix editing, regular expressions, undo of any changeset and AI access.
 
 ## How it works
 
@@ -78,7 +80,7 @@ php craft content-ops/changesets/undo 12 [--force]
 
 Content Ops includes an [MCP](https://modelcontextprotocol.io) server, so AI tools (Claude, Cursor, …) can understand your content model, read content and **propose changes as changesets**. People stay in control: a proposal changes nothing until someone reviews it in the CP and applies it, and every change can be undone like any other.
 
-**Connect over HTTP (Pro):** go to **Content Ops → AI Access**, create a token, and paste the config it shows into your AI tool:
+**Connect over HTTP:** go to **Content Ops → AI Access**, create a token, and paste the config it shows into your AI tool:
 
 ```json
 {

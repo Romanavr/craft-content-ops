@@ -213,6 +213,7 @@ class ContentOps extends Plugin
         return Craft::$app->view->renderTemplate('content-ops/_settings.twig', [
             'plugin' => $this,
             'settings' => $this->getSettings(),
+            'bannerUrl' => Craft::$app->getAssetManager()->getPublishedUrl(__DIR__ . '/web/assets/settings/dist/banner.webp', true),
         ]);
     }
 

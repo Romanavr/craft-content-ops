@@ -3,6 +3,10 @@
 
 {% import '_includes/forms.twig' as forms %}
 
+{% if bannerUrl %}
+  <img class="co-settings-banner" src="{{ bannerUrl }}" width="1280" height="640" alt="{{ 'Content Ops: bulk content editing for Craft CMS'|t('content-ops') }}">
+{% endif %}
+
 <h2>{{ 'Saving changes'|t('content-ops') }}</h2>
 
 {{ forms.lightswitchField({
@@ -69,3 +73,7 @@
     value: settings.batchSize,
     errors: settings.getErrors('batchSize'),
 }) }}
+
+{% css %}
+  .co-settings-banner { display: block; width: 100%; max-width: 640px; height: auto; margin: 0 0 24px; border-radius: 12px; }
+{% endcss %}

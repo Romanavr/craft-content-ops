@@ -1,5 +1,16 @@
 # Release Notes for Content Ops
 
+## Unreleased
+
+### Changed
+- Content Ops is now free. The Lite and Pro editions are gone, and every feature is available to everyone:
+  - Matrix editing (fields inside nested entries; adding and removing nested entries)
+  - Find & Replace with regular expressions, link and image URLs, nested entries and choosing individual matches
+  - Undo of any changeset from the History, not only the most recent one
+  - History retention you can set yourself
+  - AI proposals over MCP
+- The plugin settings page has a Content Ops banner.
+
 ## 1.0.0-beta.3 - 2026-09-30
 
 ### Changed
