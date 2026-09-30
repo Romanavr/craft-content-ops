@@ -12,7 +12,7 @@ it('shows the banner on the settings page only', function() {
         ->get('/admin/settings/plugins/content-ops')
         ->assertOk()
         ->assertSee('co-settings-banner', false)
-        ->assertSee('banner.webp', false);
+        ->assertSee('banner.jpg', false);
 
     $this->actingAsAdmin()
         ->get('/admin/content-ops/find-replace')

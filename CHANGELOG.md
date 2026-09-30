@@ -13,6 +13,7 @@
 
 ### Fixed
 - Long site names (e.g. “Nederlands”) are no longer cut off in the Bulk edit preview.
+- The settings banner no longer shows twice.
 
 ## 1.0.0-beta.3 - 2026-09-30
 
