@@ -6,7 +6,6 @@
 {% set crumbs = [{label: 'Find & Replace'|t('content-ops'), url: cpUrl('content-ops/find-replace')}] %}
 {% set status = changeset.status.value %}
 {% set options = (changeset.operations|first).options ?? {} %}
-{% set isPro = craft.app.plugins.getPlugin('content-ops').isPro() %}
 
 {% block content %}
   <p>
@@ -50,8 +49,7 @@
       {{ redirectInput(craft.app.request.pathInfo ~ (page > 1 ? '?page=' ~ page : '')) }}
 
       <p class="light">
-        {% if isPro %}{{ 'Uncheck matches you want to keep as they are.'|t('content-ops') }}
-        {% else %}{{ 'All matches below will be replaced. Choosing individual matches is available in Content Ops Pro.'|t('content-ops') }}{% endif %}
+        {{ 'Uncheck matches you want to keep as they are.'|t('content-ops') }}
       </p>
 
       {% for row in rows %}
@@ -65,7 +63,7 @@
               {% set id = 'm-' ~ row.change.id ~ '-' ~ match.index %}
               <li>
                 {{ hiddenInput('shown[' ~ row.change.id ~ '][]', match.index) }}
-                <input type="checkbox" class="checkbox" id="{{ id }}" name="include[{{ row.change.id }}][]" value="{{ match.index }}" {{ match.index in row.excluded ? '' : 'checked' }}{{ not isPro ? ' disabled' }}>
+                <input type="checkbox" class="checkbox" id="{{ id }}" name="include[{{ row.change.id }}][]" value="{{ match.index }}" {{ match.index in row.excluded ? '' : 'checked' }}>
                 <label for="{{ id }}" class="co-diff">{{ match.before }}<del>{{ match.match }}</del><ins>{{ match.replacement }}</ins>{{ match.after }}</label>
               </li>
             {% endfor %}
@@ -82,7 +80,7 @@
       {% endif %}
 
       <div class="flex co-fr-actions">
-        {% if isPro %}<button type="submit" class="btn">{{ 'Save selection'|t('content-ops') }}</button>{% endif %}
+        <button type="submit" class="btn">{{ 'Save selection'|t('content-ops') }}</button>
         {% if canApply %}
           <button type="submit" name="apply" value="1" class="btn submit">{{ 'Apply replacements'|t('content-ops') }}</button>
         {% endif %}

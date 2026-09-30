@@ -18,7 +18,6 @@ use romanavr\contentops\helpers\Values;
 use romanavr\contentops\models\Changeset;
 use romanavr\contentops\models\Operation;
 use romanavr\contentops\models\Selection;
-use romanavr\contentops\operators\MatrixOperator;
 use romanavr\contentops\records\Changeset as ChangesetRecord;
 use Throwable;
 use yii\base\Component;
@@ -293,10 +292,6 @@ class Previewer extends Component
         foreach ($operations as $operation) {
             if (!$operation->validate()) {
                 throw new InvalidArgumentException(implode(' ', $operation->getFirstErrors()));
-            }
-
-            if (Targets::isNestedPath($operation->target) || $operation->operator === MatrixOperator::handle()) {
-                $plugin->requirePro('Editing Matrix nested entries');
             }
 
             $operators->getOperator($operation->operator)->validateOperation($operation);

@@ -94,13 +94,6 @@ it('proposes a find and replace', function() {
         ->and($proposal['reviewUrl'])->toContain('content-ops/find-replace/');
 });
 
-it('keeps MCP proposals for Pro', function() {
-    useEdition(ContentOps::EDITION_LITE);
-    [$section, $field] = seedSection(['one']);
-
-    tools()->proposeBulkEdit(changes: [['target' => $field, 'operation' => 'append', 'options' => ['value' => '!']]], section: $section);
-})->throws(ToolCallException::class, 'requires Content Ops Pro');
-
 it('counts AI proposals awaiting review and lists them in the history', function() {
     [$section, $field] = seedSection(['one']);
     $service = ContentOps::getInstance()->getChangesets();

@@ -1,7 +1,5 @@
 {# Status badges for changesets and changes. #}
 
-{% macro proBadge() %}<span class="co-pro-badge" title="{{ 'Available in Content Ops Pro'|t('content-ops') }}">Pro</span>{% endmacro %}
-
 {% macro changesetStatus(status) %}
   {%- set map = {
     previewing: ['orange', 'Finding matches…'],

@@ -114,7 +114,6 @@ class ChangesetTools
         $plugin = ContentOps::getInstance();
 
         try {
-            $plugin->requirePro('Proposing changes through MCP');
             $ids = $this->_entryIds($section, $type, $entryIds, $search, $sites);
             $this->_checkLimit(count($ids));
             $operations = $this->_operations($changes, $ids);
@@ -166,7 +165,6 @@ class ChangesetTools
         $plugin = ContentOps::getInstance();
 
         try {
-            $plugin->requirePro('Proposing changes through MCP');
             $changeset = $plugin->getFindReplace()->preview(
                 new MatchSpec([
                     'find' => $find,

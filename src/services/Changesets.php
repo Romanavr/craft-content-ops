@@ -120,11 +120,6 @@ class Changesets extends Component
      */
     public function canUndo(Changeset $changeset, User $user): bool
     {
-        if (!ContentOps::getInstance()->isPro() && $changeset->id !== $this->_latestUndoableId()) {
-            // Lite: only the most recent changeset can be undone.
-            return false;
-        }
-
         return $user->can('contentOps:undo')
             && $this->canView($changeset, $user)
             && in_array($changeset->status, [ChangesetStatus::Applied, ChangesetStatus::PartiallyUndone], true)
@@ -163,8 +158,7 @@ class Changesets extends Component
             ['<', 'dateCreated', Db::prepareDateForDb(new DateTime('-1 day'))],
         ])->execute();
 
-        // Lite keeps a fixed 30 days of history; Pro uses the setting.
-        $retentionDays = ContentOps::getInstance()->isPro() ? $settings->historyRetentionDays : 30;
+        $retentionDays = $settings->historyRetentionDays;
 
         if ($retentionDays) {
             $deleted += $db->createCommand()->delete(Table::CHANGESETS, [
@@ -409,23 +403,6 @@ class Changesets extends Component
             $rows,
             fn($row) => (Json::decode($row['options'] ?? '{}')['source'] ?? null) === 'ai',
         )));
-    }
-
-    /**
-     * Returns the ID of the most recently created changeset that was applied (or partially undone).
-     *
-     * @return int|null
-     */
-    private function _latestUndoableId(): ?int
-    {
-        $id = (new Query())
-            ->select(['id'])
-            ->from(Table::CHANGESETS)
-            ->where(['status' => [ChangesetStatus::Applied->value, ChangesetStatus::PartiallyUndone->value, ChangesetStatus::Undone->value, ChangesetStatus::Undoing->value]])
-            ->orderBy(['id' => SORT_DESC])
-            ->scalar();
-
-        return $id ? (int)$id : null;
     }
 
     /**

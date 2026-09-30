@@ -48,12 +48,6 @@
       {% if changeset.dateUndone %}<dt>{{ 'Undone'|t('content-ops') }}</dt><dd>{{ changeset.dateUndone|datetime('short') }}</dd>{% endif %}
     </dl>
 
-    {% if not canUndo and not craft.app.plugins.getPlugin('content-ops').isPro() and changeset.status.value in ['applied', 'partiallyUndone'] %}
-      <p class="light">
-        {{ 'Content Ops Lite can undo the most recent changeset.'|t('content-ops') }}<br>
-        {{ 'Undoing any changeset from the history is available in Content Ops Pro.'|t('content-ops') }}
-      </p>
-    {% endif %}
     {% if (changeset.options.source ?? null) == 'ai' and changeset.status.value == 'previewed' %}
       <p class="notice with-icon">
         {{ 'An AI tool proposed this changeset. Nothing has been changed yet.'|t('content-ops') }}<br>

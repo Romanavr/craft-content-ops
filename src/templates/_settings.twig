@@ -18,16 +18,13 @@
 
 {{ forms.textField({
     label: 'Keep history for'|t('content-ops'),
-    instructions: plugin.isPro()
-        ? 'Days. Older changesets are deleted and can’t be undone anymore.<br>Leave empty to keep them forever.'|t('content-ops')
-        : 'Content Ops Lite keeps 30 days of history.<br>Choosing the period is available in Content Ops Pro.'|t('content-ops'),
+    instructions: 'Days. Older changesets are deleted and can’t be undone anymore.<br>Leave empty to keep them forever.'|t('content-ops'),
     name: 'historyRetentionDays',
     type: 'number',
     size: 6,
     min: 1,
     unit: 'days'|t('content-ops'),
     value: settings.historyRetentionDays,
-    disabled: not plugin.isPro(),
     errors: settings.getErrors('historyRetentionDays'),
 }) }}
 
