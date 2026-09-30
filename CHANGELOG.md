@@ -1,6 +1,6 @@
 # Release Notes for Content Ops
 
-## Unreleased
+## 1.0.0 - 2026-09-30
 
 ### Changed
 - Content Ops is now free. The Lite and Pro editions are gone, and every feature is available to everyone:
